@@ -9,9 +9,13 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc",
-    "db:diff": "supabase db diff -f",
     "ui-add": "pnpm dlx shadcn@latest add",
-    "migration:up": "supabase migration up"
+    "migration:up": "supabase migration up",
+    "db:cli": "pnpm db:dump && pnpm db:gen && pnpm db:diff",
+    "db:reset": "supabase db reset --local",
+    "db:gen": "supabase gen types typescript --local --schema public > supabase/types.ts",
+    "db:diff": "supabase db diff -f --local",
+    "db:dump": "supabase db dump -f supabase/schema.sql --local"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

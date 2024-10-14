@@ -1,6 +1,16 @@
-import type { MetaFunction } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
+import { createSupabaseServerClient } from "~/supabase.server";
+
+export async function loader({request}: LoaderFunctionArgs) {
+  const {supabaseClient} = createSupabaseServerClient(request);
+  const session = await supabaseClient.auth.getSession();
+  console.log("🚀 ~ loader ~ session:", session)
+  return {
+    session
+  }
+}
 
 export const meta: MetaFunction = () => {
   return [
@@ -10,6 +20,8 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
+  const {session} = useLoaderData<typeof loader>();
+  console.log(session.data);
   return (
     <div className="text-center min-h-screen flex items-center flex-col justify-center">
       <h1 className="text-5xl font-bold text-blue-700 mb-4">

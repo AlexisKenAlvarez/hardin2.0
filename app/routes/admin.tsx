@@ -1,6 +1,7 @@
 import { Outlet } from "@remix-run/react";
 
 const Admin = () => {
+  
   return (
     <div>
       <Outlet />
