@@ -12,9 +12,11 @@ export default {
       },
 			fontFamily: {
 				'primary': ['Fontspring', 'sans-serif'],
-				'secondary': ['SFPro', 'sans-serif'],
+				'secondary': ['Epilogue', 'sans-serif'],
 			},
       colors: {
+        black2: "#181108",
+        active: "#AF4600",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -27,6 +29,7 @@ export default {
         },
         primary: {
           DEFAULT: "#dd5a02",
+          brown: "#76422C",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {

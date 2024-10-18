@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,100..900;1,100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -104,4 +105,8 @@
     font-style: normal;
   }
 
+  .custom-placeholder::placeholder {
+    color: #ff6347; /* Replace with your desired color */
+    opacity: 0.5; /* Ensure the color is fully opaque */
+  }
 }
