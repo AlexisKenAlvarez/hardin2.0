@@ -1,6 +1,20 @@
-import { Outlet } from "@remix-run/react";
+import { Outlet, redirect } from "@remix-run/react";
 import HardinLogo from "~/components/logo";
 import AdminNav from "~/modules/admin/components/AdminNav";
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { createSupabaseServerClient } from "~/supabase.server";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { supabaseClient } = await createSupabaseServerClient(request);
+
+  const { data: user } = await supabaseClient.auth.getSession();
+
+  if (!user.session) {
+    return redirect("/admin/signin");
+  }
+
+  return {};
+}
 
 const AdminLayout = () => {
   return (

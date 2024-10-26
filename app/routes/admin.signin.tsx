@@ -51,22 +51,22 @@ const Signin = () => {
 
         <div className="sm:mt-10 mt-4 h-full w-full rounded-md p-5 pb-10 backdrop-blur-md sm:h-auto sm:max-w-sm space-y-4">
           <div className="">
-            <h2 className="text-center font-secondary text-xl font-bold">
+            <h2 className="text-center   text-xl font-bold">
               Login as Admin
             </h2>
-            <p className="text-center text-sm text-gray-600 font-secondary">
+            <p className="text-center text-sm text-gray-600  ">
               Exclusive access for Hardin Cafe administrators and owners
             </p>
           </div>
 
           <div className="w-full space-y-4">
             {existing && error && error === "oauth conflict" && (
-              <Alert variant="destructive" className="font-secondary">
+              <Alert variant="destructive" className=" ">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  A <span className="capitalize font-bold">{existing}</span> account
-                  is already associated with this email.
+                  A <span className="capitalize font-bold">{existing}</span>{" "}
+                  account is already associated with this email.
                 </AlertDescription>
               </Alert>
             )}

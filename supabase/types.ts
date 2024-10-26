@@ -13,23 +13,23 @@ export type Database = {
         Row: {
           created_at: string
           id: number
-          product: number | null
+          product: number
         }
         Insert: {
           created_at?: string
           id?: number
-          product?: number | null
+          product: number
         }
         Update: {
           created_at?: string
           id?: number
-          product?: number | null
+          product?: number
         }
         Relationships: [
           {
             foreignKeyName: "featured_product_fkey"
             columns: ["product"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -45,6 +45,8 @@ export type Database = {
           isBestSeller: boolean
           name: string
           price: number
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           category: number
@@ -55,6 +57,8 @@ export type Database = {
           isBestSeller: boolean
           name: string
           price: number
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           category?: number
@@ -65,6 +69,8 @@ export type Database = {
           isBestSeller?: boolean
           name?: string
           price?: number
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {

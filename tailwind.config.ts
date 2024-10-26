@@ -10,10 +10,10 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-			fontFamily: {
-				'primary': ['Fontspring', 'sans-serif'],
-				'secondary': ['Epilogue', 'sans-serif'],
-			},
+      fontFamily: {
+        secondary: ["Fontspring", "sans-serif"],
+        primary: ["Epilogue", "sans-serif"],
+      },
       colors: {
         black2: "#181108",
         active: "#AF4600",
@@ -58,6 +58,28 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+      },
+      keyframes: {
+        "accordion-down": {
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
+        },
+        "accordion-up": {
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },
