@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "~/supabase.server";
 import { UpdateProduct } from "~/modules/admin/api";
 import { ProductUpdate } from "~/modules/admin/types";
 import Menu from "~/modules/admin/views/Menu";
+import { UnwrapArray } from "~/lib/utils";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { supabaseClient } = createSupabaseServerClient(request);
@@ -32,7 +33,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .select("*,category:products_category(id, label)")
     .eq("category", categoryId)
     .order("id", { ascending: false })
-    .range((Number(page) - 1) * +pageSize, (+pageSize * +page) - 1);
+    .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+
+  const productsWithImage = productsData?.map(
+    (product: UnwrapArray<typeof productsData>) => {
+      return {
+        ...product,
+        image_url: product.image_url
+          ? `${process.env.SUPABASE_URL}/storage/v1/object/public/hardin/products/${product.image_url}`
+          : "",
+      };
+    }
+  );
 
   const { count } = await supabaseClient
     .from("products")
@@ -50,7 +62,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return {
     pageOptions,
-    productsData,
+    productsData: productsWithImage,
     categoryData,
     categoryId,
     user: user.session,

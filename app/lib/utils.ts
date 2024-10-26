@@ -12,3 +12,5 @@ export const objectToFormData = (obj: Record<string, unknown>) => {
   });
   return formData;
 };
+
+export type UnwrapArray<T> = T extends (infer U)[] ? U : T;

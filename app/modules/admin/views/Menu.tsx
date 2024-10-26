@@ -26,23 +26,33 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "~/components/ui/dialog";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "~/components/DataTable";
 import { Input } from "~/components/ui/input";
 import { Switch } from "~/components/ui/switch";
-import { cn } from "~/lib/utils";
+import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
 import { CategoryFilter } from "../types";
 import { toast } from "sonner";
+import { Separator } from "~/components/ui/separator";
 
 const Menu = () => {
   const { pageOptions, user, productsData, categoryData, categoryId } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const { state } = useNavigation();
-  type UnwrapArray<T> = T extends (infer U)[] ? U : T;
+
   type productsDataType = UnwrapArray<typeof productsData>;
 
   const submit = useSubmit();
@@ -90,6 +100,28 @@ const Menu = () => {
   ];
 
   const columns: ColumnDef<productsDataType>[] = [
+    {
+      accessorKey: "image_url",
+      header: "Image",
+      cell: ({ row }) => {
+        const productImage = row.original?.image_url;
+
+        return (
+          <Dialog>
+            <DialogTrigger>
+              <img
+                src={productImage}
+                alt={row.original?.name}
+                className="w-14 h-14 rounded-md"
+              />
+            </DialogTrigger>
+            <DialogContent>
+              <img src={productImage} alt={row.original?.name} />
+            </DialogContent>
+          </Dialog>
+        );
+      },
+    },
     {
       accessorKey: "name",
       header: "Name",
@@ -169,41 +201,79 @@ const Menu = () => {
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-between">
-        <h1 className="  text-primary-brown text-2xl font-bold">
-          List of products
-        </h1>
+      <div className="">
+        <div className="flex justify-between sm:flex-row flex-col gap-2">
+          <h1 className="  text-primary-brown text-2xl font-bold">
+            List of products
+          </h1>
 
-        <Link to="/admin/add">
-          <Button>
-            <PlusCircle size={20} className="mr-2" />
-            Add new product
-          </Button>
-        </Link>
+          <Link to="/admin/add">
+            <Button>
+              <PlusCircle size={20} className="mr-2" />
+              Add new product
+            </Button>
+          </Link>
+        </div>
+
+        <ul className=" gap-12  lg:flex hidden mt-10">
+          {categoryData?.map((items) => (
+            <li key={items.id}>
+              <button
+                className={cn(" pb-2", {
+                  "border-b-4 border-primary text-primary":
+                    categoryId === items.id.toString(),
+                })}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams);
+                  params.set("category", items.id.toString());
+                  params.set("page", "1");
+                  setSearchParams(params);
+                }}
+              >
+                <p className="">{items.label}</p>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <Select
+          onValueChange={(val) => {
+            const params = new URLSearchParams(searchParams);
+            params.set("category", val);
+            params.set("page", "1");
+            setSearchParams(params);
+          }}
+        >
+          <SelectTrigger
+            className="w-[180px]  mb-4  mt-3 lg:hidden flex"
+            defaultValue={
+              categoryData?.find((x) => x.id === +categoryId)?.label
+            }
+          >
+            <SelectValue
+              placeholder={
+                categoryData?.find((x) => x.id === +categoryId)?.label
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {categoryData?.map((items) => (
+              <SelectItem
+                key={items.id}
+                value={items.id.toString()}
+                className={cn(" pb-2", {
+                  " !text-primary": categoryId === items.id.toString(),
+                })}
+              >
+                <p className="">{items.label}</p>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Separator />
       </div>
 
-      <ul className="border-b flex gap-12  ">
-        {categoryData?.map((items) => (
-          <li key={items.id}>
-            <button
-              className={cn(" pb-2", {
-                "border-b-4 border-primary text-primary":
-                  categoryId === items.id.toString(),
-              })}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams);
-                params.set("category", items.id.toString());
-                params.set("page", "1");
-                setSearchParams(params);
-              }}
-            >
-              <p className="">{items.label}</p>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <div className="flex justify-between  ">
+      <div className="flex justify-between sm:flex-row flex-col gap-3 ">
         <div className="flex gap-2">
           <Input
             type="text"
