@@ -13,3 +13,8 @@ export interface PageOptions {
   pages: number | null;
   total: number | null;
 }
+
+export interface IDropdownOptions {
+  value: string;
+  label: string;
+}

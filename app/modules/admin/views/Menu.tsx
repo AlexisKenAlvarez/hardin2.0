@@ -6,17 +6,9 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { PlusCircle } from "lucide-react";
+import { Filter, Pencil, PlusCircle, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 
 import {
   Dialog,
@@ -38,18 +30,25 @@ import {
 } from "~/components/ui/select";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 import { DataTable } from "~/components/DataTable";
-import { Input } from "~/components/ui/input";
+import { InputWithOptions } from "~/components/ui/input-with-options";
+import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
 import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
-import { CategoryFilter } from "../types";
-import { toast } from "sonner";
-import { Separator } from "~/components/ui/separator";
+import { CategoryFilterValues } from "../types";
+import { Label } from "~/components/ui/label";
 
 const Menu = () => {
-  const { pageOptions, user, productsData, categoryData, categoryId } =
-    useLoaderData<typeof loader>();
+  const {
+    filterOptions,
+    pageOptions,
+    user,
+    productsData,
+    categoryData,
+    categoryId,
+  } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const { state } = useNavigation();
 
@@ -58,46 +57,9 @@ const Menu = () => {
   const submit = useSubmit();
   const [searchParams, setSearchParams] = useSearchParams();
   const [toUpdate, setToUpdate] = useState<productsDataType>();
-  const [
-    ,
-    // search
-    setSearch,
-  ] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>({
-    name: false,
-    price: false,
-    image: false,
-    isActive: false,
-    isBestSeller: false,
-    isFeatured: false,
-  });
-
-  const categoryOptions = [
-    {
-      value: "name",
-      label: "Name",
-    },
-    {
-      value: "price",
-      label: "Price",
-    },
-    {
-      value: "image",
-      label: "Image",
-    },
-    {
-      value: "isActive",
-      label: "Active",
-    },
-    {
-      value: "isBestSeller",
-      label: "Best Seller",
-    },
-    {
-      value: "isFeatured",
-      label: "Featured",
-    },
-  ];
+  const [categoryFilter, setCategoryFilter] =
+    useState<Partial<CategoryFilterValues>>();
+  console.log("🚀 ~ Menu ~ categoryFilter:", categoryFilter);
 
   const columns: ColumnDef<productsDataType>[] = [
     {
@@ -191,6 +153,19 @@ const Menu = () => {
         );
       },
     },
+    {
+      header: "Actions",
+      cell: ({ row }) => {
+        const product = row.original;
+
+        return (
+          <Button size="sm" className="flex items-center gap-1">
+            <Pencil size={10} className="-mt-[2px]" />
+            <span>Edit</span>
+          </Button>
+        );
+      },
+    },
   ];
 
   useEffect(() => {
@@ -274,44 +249,125 @@ const Menu = () => {
       </div>
 
       <div className="flex justify-between sm:flex-row flex-col gap-3 ">
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            name="search"
-            className="rounded-xl max-w-sm"
-            placeholder="Search a product"
-            onChange={(e) => setSearch(e.target.value)}
+        <Button variant="outline" className="gap-1">
+          <Filter size={14} />
+          <span>Filter By</span>
+        </Button>
+      </div>
+
+      <div className="w-full p-3 px-4 bg-gray-50">
+        <div className="flex gap-2 items-end">
+          <InputWithOptions
+            opts={filterOptions.nameOpts}
+            label="Name"
+            placeholder="Filter by name"
+            value={{
+              value: categoryFilter?.name ?? "",
+              label: categoryFilter?.name ?? "",
+            }}
+            onChange={(e) => {
+              setCategoryFilter({
+                ...categoryFilter,
+                name: e.value,
+              });
+            }}
           />
-          <Button>Search</Button>
+
+          <InputWithOptions
+            opts={filterOptions.priceOpts}
+            label="Price"
+            placeholder="Filter by price"
+            value={{
+              value: categoryFilter?.price ?? "",
+              label: categoryFilter?.price ?? "",
+            }}
+            onChange={(e) => {
+              setCategoryFilter({
+                ...categoryFilter,
+                price: e.value,
+              });
+            }}
+          />
+
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Best Seller</p>
+            <Select
+              onValueChange={(value) => {
+                setCategoryFilter({
+                  ...categoryFilter,
+                  isBestSeller: value,
+                });
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                {categoryFilter?.isBestSeller ? (
+                  <SelectValue />
+                ) : (
+                  <p className="opacity-60">Filter by best seller</p>
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">True</SelectItem>
+                <SelectItem value="false">False</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Active</p>
+            <Select
+              onValueChange={(value) => {
+                setCategoryFilter({
+                  ...categoryFilter,
+                  isActive: value,
+                });
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                {categoryFilter?.isActive ? (
+                  <SelectValue />
+                ) : (
+                  <p className="opacity-60">Filter by active</p>
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">True</SelectItem>
+                <SelectItem value="false">False</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Date</p>
+            <Select
+              onValueChange={(value) => {
+                setCategoryFilter({
+                  ...categoryFilter,
+                  date: value,
+                });
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                {categoryFilter?.date ? (
+                  <SelectValue />
+                ) : (
+                  <p className="opacity-60">Filter by date</p>
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button className="gap-1 mb-1" size={"sm"} onClick={() => {
+            
+          }}>
+            <Search size={14} className="-mt-1" />
+            Search
+          </Button>
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">Filter By</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56  ">
-            <DropdownMenuLabel>Filter column</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {categoryOptions.map((item) => (
-              <DropdownMenuCheckboxItem
-                key={item.value}
-                checked={
-                  categoryFilter[item.value as keyof CategoryFilter] === true
-                }
-                onCheckedChange={(e) => {
-                  const value = e;
-
-                  setCategoryFilter((prevState) => ({
-                    ...prevState,
-                    [item.value]: value,
-                  }));
-                }}
-              >
-                {item.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <div className="">

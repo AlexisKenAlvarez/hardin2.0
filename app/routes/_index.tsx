@@ -15,6 +15,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
     },
   };
+
+
 }
 
 export const meta: MetaFunction = () => {

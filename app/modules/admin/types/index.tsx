@@ -1,10 +1,21 @@
-export interface CategoryFilter {
-  name: boolean;
-  price: boolean;
-  image: boolean;
-  isActive: boolean;
-  isBestSeller: boolean;
-  isFeatured: boolean;
+import { IDropdownOptions } from "~/lib/types";
+
+export interface CategoryFilterOptions {
+  name: IDropdownOptions;
+  price: IDropdownOptions;
+  isActive: IDropdownOptions;
+  isBestSeller: IDropdownOptions;
+  isFeatured: IDropdownOptions;
+  date: IDropdownOptions;
+}
+
+export interface CategoryFilterValues {
+  name: string;
+  price: string;
+  isActive: string;
+  isBestSeller: string;
+  isFeatured: string;
+  date: string;
 }
 
 export interface CroppedPixels {
@@ -22,10 +33,10 @@ export interface categoryType {
 export interface ProductUpdate {
   id: string;
   name: string;
-  price: string,
-  category: string,
-  isBestSeller: string,
-  isActive: string,
-  updated_by: string,
-  _action: string,
+  price: string;
+  category: string;
+  isBestSeller: string;
+  isActive: string;
+  updated_by: string;
+  _action: string;
 }

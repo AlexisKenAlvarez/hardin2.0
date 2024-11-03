@@ -144,7 +144,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_name_opts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          value: string
+          label: string
+        }[]
+      }
+      get_price_opts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          value: string
+          label: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

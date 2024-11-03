@@ -2,7 +2,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/react";
 import { createSupabaseServerClient } from "~/supabase.server";
 
-import { UpdateProduct } from "~/modules/admin/api";
+import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
 import { ProductUpdate } from "~/modules/admin/types";
 import Menu from "~/modules/admin/views/Menu";
 import { UnwrapArray } from "~/lib/utils";
@@ -35,6 +35,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .order("id", { ascending: false })
     .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
 
+  const filterOptions = await GetAdminFilterOptions({ request });
+
   const productsWithImage = productsData?.map(
     (product: UnwrapArray<typeof productsData>) => {
       return {
@@ -61,6 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 
   return {
+    filterOptions,
     pageOptions,
     productsData: productsWithImage,
     categoryData,

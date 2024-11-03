@@ -157,3 +157,29 @@ export const UpdateProduct = async ({
     }
   }
 };
+
+export const GetAdminFilterOptions = async ({
+  request,
+}: {
+  request: Request;
+}) => {
+  const { supabaseClient } = createSupabaseServerClient(request);
+
+  const { data: nameOpts, error: nameOptsError } = await supabaseClient
+    .rpc("get_name_opts")
+    .select("*");
+
+  if (nameOptsError) {
+    throw new Error("Failed to fetch name options");
+  }
+
+  const { data: priceOpts, error: priceOptsError } = await supabaseClient
+    .rpc("get_price_opts")
+    .select("*");
+
+  if (priceOptsError) {
+    throw new Error("Failed to fetch price options");
+  }
+
+  return { nameOpts, priceOpts };
+};
