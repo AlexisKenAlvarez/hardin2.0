@@ -15,12 +15,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
     },
   };
+
+
 }
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "Hardin Cafe" },
+    { name: "description", content: "Welcome to Hardin!" },
   ];
 };
 
@@ -28,7 +30,6 @@ export default function Index() {
   const { session, env } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const supabase = createBrowserClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-  console.log(session);
   return (
     <div className="text-center min-h-screen flex items-center flex-col justify-center">
       <h1 className="text-5xl font-bold text-blue-700 mb-4">
