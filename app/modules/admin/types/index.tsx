@@ -15,7 +15,7 @@ export interface CategoryFilterValues {
   isActive: string;
   isBestSeller: string;
   isFeatured: string;
-  date: string;
+  order: string;
 }
 
 export interface CroppedPixels {
@@ -39,4 +39,9 @@ export interface ProductUpdate {
   isActive: string;
   updated_by: string;
   _action: string;
+}
+
+export interface FilterOptions {
+  nameOpts: IDropdownOptions[];
+  priceOpts: IDropdownOptions[];
 }

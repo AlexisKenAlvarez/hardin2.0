@@ -71,6 +71,85 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+
+CREATE OR REPLACE FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text") RETURNS TABLE("id" bigint, "name" character varying, "image_url" character varying, "price" bigint, "is_best_seller" boolean, "is_active" boolean, "category" bigint, "label" character varying)
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    condition text := '';
+    sql text := 'SELECT 
+              p.id, 
+              p.name, 
+              p.image_url,
+              p.price, 
+              p.is_best_seller,
+              p.is_active, 
+              p.category, 
+              pc.label 
+              FROM products p
+              LEFT JOIN products_category pc ON pc.id = p.category
+              WHERE p.category = ' || category_filter || '';
+BEGIN
+    -- Build the condition dynamically based on the value of "name"
+    IF name_filter IS NOT NULL AND name_filter != '' THEN
+        condition := condition || ' AND name ILIKE ''%' || name_filter || '%''';
+    END IF;
+
+    IF price_filter IS NOT NULL AND price_filter != '' THEN
+        condition := condition || ' AND price = ' || price_filter || '';
+    END IF;
+
+    IF bestSeller IS NOT NULL THEN
+        condition := condition || ' AND is_best_seller = ' || bestSeller || '';
+    END IF;
+
+    IF active IS NOT NULL THEN
+        condition := condition || ' AND p.is_active = ' || active || '';
+    END IF;
+
+    IF "order" IS NOT NULL AND "order" != '' THEN
+        IF "order" = 'newest' THEN
+            condition := condition || ' ORDER BY p.created_at DESC';
+        ELSE
+            condition := condition || ' ORDER BY p.created_at ASC';
+        END IF;
+    END IF;
+
+    sql := sql || condition;
+
+    -- Execute the dynamic SQL and return the result
+    RETURN QUERY EXECUTE sql;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_name_opts"() RETURNS TABLE("value" character varying, "label" character varying)
+    LANGUAGE "plpgsql"
+    AS $$BEGIN
+  RETURN QUERY
+  SELECT DISTINCT name AS value, name AS label 
+  FROM products ORDER BY name asc;
+END;$$;
+
+
+ALTER FUNCTION "public"."get_name_opts"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_price_opts"() RETURNS TABLE("value" character varying, "label" character varying)
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN 
+RETURN QUERY
+SELECT DISTINCT price::varchar as value, price::varchar as label FROM products;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_price_opts"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -107,8 +186,8 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "name" character varying NOT NULL,
     "price" bigint NOT NULL,
     "image_url" character varying NOT NULL,
-    "isActive" boolean DEFAULT true NOT NULL,
-    "isBestSeller" boolean NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "is_best_seller" boolean NOT NULL,
     "category" bigint NOT NULL,
     "updated_at" timestamp without time zone,
     "updated_by" character varying
@@ -122,7 +201,7 @@ CREATE TABLE IF NOT EXISTS "public"."products_category" (
     "id" bigint NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "label" character varying DEFAULT ''::character varying NOT NULL,
-    "isActive" boolean DEFAULT true NOT NULL
+    "is_active" boolean DEFAULT true NOT NULL
 );
 
 
@@ -160,11 +239,11 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "email" character varying NOT NULL,
     "username" character varying NOT NULL,
-    "isVerified" boolean DEFAULT false NOT NULL,
-    "isActive" boolean DEFAULT true NOT NULL,
+    "is_verified" boolean DEFAULT false NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
     "id_url" character varying,
     "image_url" character varying,
-    "isAdmin" boolean DEFAULT false NOT NULL
+    "is_admin" boolean DEFAULT false NOT NULL
 );
 
 
@@ -219,6 +298,18 @@ ALTER TABLE ONLY "public"."featured"
 
 ALTER TABLE ONLY "public"."products"
     ADD CONSTRAINT "products_category_fkey" FOREIGN KEY ("category") REFERENCES "public"."products_category"("id");
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."products" TO "authenticated" USING (true);
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."products_category" USING (true);
+
+
+
+CREATE POLICY "ReadAll" ON "public"."products_category" TO "anon" USING (true);
 
 
 
@@ -432,6 +523,24 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+
+
+
+GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_name_opts"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_name_opts"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_name_opts"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_price_opts"() TO "anon";
+GRANT ALL ON FUNCTION "public"."get_price_opts"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_price_opts"() TO "service_role";
 
 
 

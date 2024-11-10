@@ -40,10 +40,11 @@ import {
 } from "~/components/ui/dialog";
 
 import getCroppedImg from "~/utils/getCroppedImage";
-import { action, loader } from "~/routes/_authenticated.admin.add";
 import { CroppedPixels } from "../types";
+import { action, loader } from "~/routes/_authenticated.admin.edit.$id";
 
-const Add = () => {
+const EditProductForm = () => {
+  const { categoryData, product } = useLoaderData<typeof loader>();
   const data = useActionData<typeof action>();
   const navigation = useNavigation();
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const Add = () => {
   const [key, setKey] = useState(+new Date());
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(product.image_url ?? null);
   const [imgName, setImgName] = useState("");
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedPixels>({
@@ -61,7 +62,6 @@ const Add = () => {
     height: 0,
   });
   const [cropping, setCropping] = useState(false);
-  const { categoryData } = useLoaderData<typeof loader>();
   const submit = useSubmit();
 
   const categorySchema = z.object({
@@ -384,4 +384,4 @@ const Add = () => {
   );
 };
 
-export default Add;
+export default EditProductForm;

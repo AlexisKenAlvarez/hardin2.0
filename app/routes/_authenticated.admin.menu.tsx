@@ -6,6 +6,7 @@ import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
 import { ProductUpdate } from "~/modules/admin/types";
 import Menu from "~/modules/admin/views/Menu";
 import { UnwrapArray } from "~/lib/utils";
+import { PageOptions } from "~/lib/types";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { supabaseClient } = createSupabaseServerClient(request);
@@ -18,6 +19,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const pageSize = searchParams.get("pageSize") || "10";
   const page = searchParams.get("page") || "1";
 
+  const action = searchParams.get("action");
+
+  const bestSeller = searchParams.get("isBestSeller");
+  const isActive = searchParams.get("isActive");
+
+  const searchFilters = {
+    name: searchParams.get("name"),
+    price: searchParams.get("price"),
+    isBestSeller: bestSeller === "" ? null : bestSeller === "true",
+    isActive: isActive === "" ? null : isActive === "true",
+    order: searchParams.get("order"),
+  };
+
   if (!categoryId) {
     searchParams.set("category", "1");
     return redirect(url.toString());
@@ -26,16 +40,72 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const { data: categoryData } = await supabaseClient
     .from("products_category")
     .select("id, label")
-    .eq("isActive", true);
+    .eq("is_active", true);
 
-  const { data: productsData } = await supabaseClient
-    .from("products")
-    .select("*,category:products_category(id, label)")
-    .eq("category", categoryId)
-    .order("id", { ascending: false })
-    .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+  let pageOptions: PageOptions = {
+    pageSize: 0,
+    page: 0,
+    pages: 0,
+    total: 0,
+  };
 
-  const filterOptions = await GetAdminFilterOptions({ request });
+  const getProducts = async () => {
+    if (action === "search") {
+      const { data: productsData, count } = await supabaseClient
+        .rpc(
+          "filter_products",
+          {
+            active: searchFilters.isActive as boolean,
+            bestseller: searchFilters.isBestSeller as boolean,
+            name_filter: searchFilters.name ?? "",
+            price_filter: searchFilters.price ?? "",
+            order: searchFilters.order ?? "",
+            category_filter: categoryId ?? ''
+          },
+          {
+            count: "exact",
+          }
+        )
+        .select("*")
+        .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+
+      pageOptions = {
+        pageSize: Number(pageSize),
+        page: Number(page),
+        pages: Math.ceil((count ?? 0) / Number(pageSize)),
+        total: count,
+      };
+
+      return productsData;
+    } else {
+      const { data: productsData } = await supabaseClient
+        .from("products")
+        .select(
+          "id, name, price, image_url, is_best_seller, is_active, category, ...products_category!inner(label)"
+        )
+        .eq("category", categoryId)
+        .order("id", { ascending: false })
+        .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+
+      const { count } = await supabaseClient
+        .from("products")
+        .select("id", {
+          count: "exact",
+        })
+        .eq("category", categoryId);
+
+      pageOptions = {
+        pageSize: Number(pageSize),
+        page: Number(page),
+        pages: Math.ceil((count ?? 0) / Number(pageSize)),
+        total: count,
+      };
+
+      return productsData;
+    }
+  };
+  const productsData = await getProducts();
+  const filterOptions = await GetAdminFilterOptions({ request, category: categoryId });
 
   const productsWithImage = productsData?.map(
     (product: UnwrapArray<typeof productsData>) => {
@@ -47,20 +117,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       };
     }
   );
-
-  const { count } = await supabaseClient
-    .from("products")
-    .select("id", {
-      count: "exact",
-    })
-    .eq("category", categoryId);
-
-  const pageOptions = {
-    pageSize: Number(pageSize),
-    page: Number(page),
-    pages: Math.ceil((count ?? 0) / Number(pageSize)),
-    total: count,
-  };
 
   return {
     filterOptions,

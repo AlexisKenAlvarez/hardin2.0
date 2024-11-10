@@ -41,8 +41,8 @@ export type Database = {
           created_at: string
           id: number
           image_url: string
-          isActive: boolean
-          isBestSeller: boolean
+          is_active: boolean
+          is_best_seller: boolean
           name: string
           price: number
           updated_at: string | null
@@ -53,8 +53,8 @@ export type Database = {
           created_at?: string
           id?: number
           image_url: string
-          isActive?: boolean
-          isBestSeller: boolean
+          is_active?: boolean
+          is_best_seller: boolean
           name: string
           price: number
           updated_at?: string | null
@@ -65,8 +65,8 @@ export type Database = {
           created_at?: string
           id?: number
           image_url?: string
-          isActive?: boolean
-          isBestSeller?: boolean
+          is_active?: boolean
+          is_best_seller?: boolean
           name?: string
           price?: number
           updated_at?: string | null
@@ -86,19 +86,19 @@ export type Database = {
         Row: {
           created_at: string
           id: number
-          isActive: boolean
+          is_active: boolean
           label: string
         }
         Insert: {
           created_at?: string
           id?: number
-          isActive?: boolean
+          is_active?: boolean
           label?: string
         }
         Update: {
           created_at?: string
           id?: number
-          isActive?: boolean
+          is_active?: boolean
           label?: string
         }
         Relationships: []
@@ -110,9 +110,9 @@ export type Database = {
           id: number
           id_url: string | null
           image_url: string | null
-          isActive: boolean
-          isAdmin: boolean
-          isVerified: boolean
+          is_active: boolean
+          is_admin: boolean
+          is_verified: boolean
           username: string
         }
         Insert: {
@@ -121,9 +121,9 @@ export type Database = {
           id?: number
           id_url?: string | null
           image_url?: string | null
-          isActive?: boolean
-          isAdmin?: boolean
-          isVerified?: boolean
+          is_active?: boolean
+          is_admin?: boolean
+          is_verified?: boolean
           username: string
         }
         Update: {
@@ -132,9 +132,9 @@ export type Database = {
           id?: number
           id_url?: string | null
           image_url?: string | null
-          isActive?: boolean
-          isAdmin?: boolean
-          isVerified?: boolean
+          is_active?: boolean
+          is_admin?: boolean
+          is_verified?: boolean
           username?: string
         }
         Relationships: []
@@ -144,18 +144,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_name_opts: {
-        Args: Record<PropertyKey, never>
+      filter_products: {
+        Args: {
+          name_filter: string
+          price_filter: string
+          bestseller: boolean
+          active: boolean
+          order: string
+          category_filter: string
+        }
         Returns: {
-          value: string
+          id: number
+          name: string
+          image_url: string
+          price: number
+          is_best_seller: boolean
+          is_active: boolean
+          category: number
           label: string
         }[]
       }
-      get_price_opts: {
-        Args: Record<PropertyKey, never>
+      get_name_opts: {
+        Args: {
+          category_filter: string
+        }
         Returns: {
+          name: string
           value: string
-          label: string
+        }[]
+      }
+      get_price_opts: {
+        Args: {
+          category_filter: string
+        }
+        Returns: {
+          name: string
+          value: string
         }[]
       }
     }

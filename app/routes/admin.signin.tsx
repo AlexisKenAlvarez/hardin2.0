@@ -1,7 +1,7 @@
 import { useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 
-import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/node";
 import { createBrowserClient } from "@supabase/ssr";
 import { AlertCircle, Github } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -25,14 +25,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  const actionType = formData.get("action");
+// export async function action({ request }: ActionFunctionArgs) {
+//   const formData = await request.formData();
+//   const actionType = formData.get("action");
+//   console.log("🚀 ~ action ~ actionType:", actionType)
 
-  console.log(actionType);
-
-  return {};
-}
+//   return {};
+// }
 
 const Signin = () => {
   const { env, error, existing } = useLoaderData<typeof loader>();
@@ -51,9 +50,7 @@ const Signin = () => {
 
         <div className="sm:mt-10 mt-4 h-full w-full rounded-md p-5 pb-10 backdrop-blur-md sm:h-auto sm:max-w-sm space-y-4">
           <div className="">
-            <h2 className="text-center   text-xl font-bold">
-              Login as Admin
-            </h2>
+            <h2 className="text-center   text-xl font-bold">Login as Admin</h2>
             <p className="text-center text-sm text-gray-600  ">
               Exclusive access for Hardin Cafe administrators and owners
             </p>

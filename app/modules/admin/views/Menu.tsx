@@ -6,7 +6,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { Filter, Pencil, PlusCircle, Search } from "lucide-react";
+import { CircleX, Filter, Pencil, PlusCircle, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 
@@ -38,7 +38,8 @@ import { Switch } from "~/components/ui/switch";
 import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
 import { CategoryFilterValues } from "../types";
-import { Label } from "~/components/ui/label";
+import { AnimatePresence, motion } from "framer-motion";
+import { IDropdownOptions } from "~/lib/types";
 
 const Menu = () => {
   const {
@@ -56,10 +57,10 @@ const Menu = () => {
 
   const submit = useSubmit();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [filterOpen, setFilterOpen] = useState(false);
   const [toUpdate, setToUpdate] = useState<productsDataType>();
   const [categoryFilter, setCategoryFilter] =
     useState<Partial<CategoryFilterValues>>();
-  console.log("🚀 ~ Menu ~ categoryFilter:", categoryFilter);
 
   const columns: ColumnDef<productsDataType>[] = [
     {
@@ -100,7 +101,7 @@ const Menu = () => {
 
         return (
           <div className="">
-            <p className="">{category?.label}</p>
+            <p className="">{category}</p>
           </div>
         );
       },
@@ -115,12 +116,12 @@ const Menu = () => {
           <div className="">
             <Switch
               disabled={state === "loading"}
-              defaultChecked={product?.isBestSeller}
+              defaultChecked={product?.is_best_seller}
               onCheckedChange={(checked) => {
                 if (product) {
                   setToUpdate({
                     ...product,
-                    isBestSeller: checked,
+                    is_best_seller: checked,
                   });
                 }
               }}
@@ -139,12 +140,12 @@ const Menu = () => {
           <div className="">
             <Switch
               disabled={state === "loading"}
-              defaultChecked={product?.isActive}
+              defaultChecked={product?.is_active}
               onCheckedChange={(checked) => {
                 if (product) {
                   setToUpdate({
                     ...product,
-                    isActive: checked,
+                    is_active: checked,
                   });
                 }
               }}
@@ -168,11 +169,36 @@ const Menu = () => {
     },
   ];
 
+  const clearFilters = () => {
+    const params = new URLSearchParams(searchParams);
+
+    params.delete("name");
+    params.delete("price");
+    params.delete("isBestSeller");
+    params.delete("isActive");
+    params.delete("order");
+    params.delete("page");
+    params.delete("action");
+
+    setCategoryFilter({});
+    setSearchParams(params);
+  };
+
   useEffect(() => {
     if (actionData?.action === "updateProduct" && actionData.success) {
       toast.success("Product updated successfully");
     }
   }, [actionData]);
+
+  useEffect(() => {
+    setCategoryFilter({
+      isActive: searchParams.get("isActive") ?? undefined,
+      isBestSeller: searchParams.get("isBestSeller") ?? undefined,
+      name: searchParams.get("name") ?? undefined,
+      price: searchParams.get("price") ?? undefined,
+      order: searchParams.get("order") ?? undefined,
+    });
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -199,10 +225,11 @@ const Menu = () => {
                     categoryId === items.id.toString(),
                 })}
                 onClick={() => {
-                  const params = new URLSearchParams(searchParams);
+                  const params = new URLSearchParams();
                   params.set("category", items.id.toString());
                   params.set("page", "1");
                   setSearchParams(params);
+                  setCategoryFilter({});
                 }}
               >
                 <p className="">{items.label}</p>
@@ -249,133 +276,174 @@ const Menu = () => {
       </div>
 
       <div className="flex justify-between sm:flex-row flex-col gap-3 ">
-        <Button variant="outline" className="gap-1">
+        <Button
+          variant="outline"
+          className="gap-1"
+          onClick={() => setFilterOpen((val) => !val)}
+        >
           <Filter size={14} />
           <span>Filter By</span>
         </Button>
       </div>
-
-      <div className="w-full p-3 px-4 bg-gray-50">
-        <div className="flex gap-2 items-end">
-          <InputWithOptions
-            opts={filterOptions.nameOpts}
-            label="Name"
-            placeholder="Filter by name"
-            value={{
-              value: categoryFilter?.name ?? "",
-              label: categoryFilter?.name ?? "",
-            }}
-            onChange={(e) => {
-              setCategoryFilter({
-                ...categoryFilter,
-                name: e.value,
-              });
-            }}
-          />
-
-          <InputWithOptions
-            opts={filterOptions.priceOpts}
-            label="Price"
-            placeholder="Filter by price"
-            value={{
-              value: categoryFilter?.price ?? "",
-              label: categoryFilter?.price ?? "",
-            }}
-            onChange={(e) => {
-              setCategoryFilter({
-                ...categoryFilter,
-                price: e.value,
-              });
-            }}
-          />
-
-          <div className="space-y-1">
-            <p className="text-xs font-medium">Best Seller</p>
-            <Select
-              onValueChange={(value) => {
-                setCategoryFilter({
-                  ...categoryFilter,
-                  isBestSeller: value,
-                });
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                {categoryFilter?.isBestSeller ? (
-                  <SelectValue />
-                ) : (
-                  <p className="opacity-60">Filter by best seller</p>
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">True</SelectItem>
-                <SelectItem value="false">False</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs font-medium">Active</p>
-            <Select
-              onValueChange={(value) => {
-                setCategoryFilter({
-                  ...categoryFilter,
-                  isActive: value,
-                });
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                {categoryFilter?.isActive ? (
-                  <SelectValue />
-                ) : (
-                  <p className="opacity-60">Filter by active</p>
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">True</SelectItem>
-                <SelectItem value="false">False</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-xs font-medium">Date</p>
-            <Select
-              onValueChange={(value) => {
-                setCategoryFilter({
-                  ...categoryFilter,
-                  date: value,
-                });
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                {categoryFilter?.date ? (
-                  <SelectValue />
-                ) : (
-                  <p className="opacity-60">Filter by date</p>
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest first</SelectItem>
-                <SelectItem value="oldest">Oldest first</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button className="gap-1 mb-1" size={"sm"} onClick={() => {
-            
-          }}>
-            <Search size={14} className="-mt-1" />
-            Search
-          </Button>
-        </div>
-      </div>
-
       <div className="">
-        <DataTable
-          columns={columns}
-          data={productsData as productsDataType[]}
-          pageOptions={pageOptions}
-        />
+        <AnimatePresence mode="wait">
+          {filterOpen && (
+            <motion.div
+              key="filter_options"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className={cn("w-full   overflow-hidden")}
+            >
+              <div className="p-3 px-4 flex flex-wrap items-end gap-2">
+                <InputWithOptions
+                  opts={filterOptions.nameOpts as unknown as IDropdownOptions[]}
+                  label="Name"
+                  placeholder="Filter by name"
+                  value={{
+                    value: categoryFilter?.name ?? "",
+                    label: categoryFilter?.name ?? "",
+                  }}
+                  onChange={(e) => {
+                    setCategoryFilter({
+                      ...categoryFilter,
+                      name: e.value,
+                    });
+                  }}
+                />
+
+                <InputWithOptions
+                  opts={
+                    filterOptions.priceOpts as unknown as IDropdownOptions[]
+                  }
+                  label="Price"
+                  placeholder="Filter by price"
+                  value={{
+                    value: categoryFilter?.price ?? "",
+                    label: categoryFilter?.price ?? "",
+                  }}
+                  onChange={(e) => {
+                    setCategoryFilter({
+                      ...categoryFilter,
+                      price: e.value,
+                    });
+                  }}
+                />
+
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Best Seller</p>
+                  <Select
+                    onValueChange={(value) => {
+                      setCategoryFilter({
+                        ...categoryFilter,
+                        isBestSeller: value,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      {categoryFilter?.isBestSeller ? (
+                        <SelectValue />
+                      ) : (
+                        <p className="opacity-60">Filter by best seller</p>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">True</SelectItem>
+                      <SelectItem value="false">False</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Active</p>
+                  <Select
+                    onValueChange={(value) => {
+                      setCategoryFilter({
+                        ...categoryFilter,
+                        isActive: value,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      {categoryFilter?.isActive ? (
+                        <SelectValue />
+                      ) : (
+                        <p className="opacity-60">Filter by active</p>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">True</SelectItem>
+                      <SelectItem value="false">False</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Date</p>
+                  <Select
+                    onValueChange={(value) => {
+                      setCategoryFilter({
+                        ...categoryFilter,
+                        order: value,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      {categoryFilter?.order ? (
+                        <SelectValue />
+                      ) : (
+                        <p className="opacity-60">Filter by order</p>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest first</SelectItem>
+                      <SelectItem value="oldest">Oldest first</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className=" mb-1 flex gap-2">
+                  <Button
+                    className="rounded-xl"
+                    size={"sm"}
+                    onClick={clearFilters}
+                  >
+                    <CircleX size={14} />
+                  </Button>
+                  <Button
+                    className="gap-1"
+                    size={"sm"}
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams);
+                      params.set("name", categoryFilter?.name ?? "");
+                      params.set("price", categoryFilter?.price ?? "");
+                      params.set(
+                        "isBestSeller",
+                        categoryFilter?.isBestSeller ?? ""
+                      );
+                      params.set("isActive", categoryFilter?.isActive ?? "");
+                      params.set("order", categoryFilter?.order ?? "");
+                      params.set("action", "search");
+                      setSearchParams(params);
+                    }}
+                  >
+                    <Search size={14} className="-mt-1" />
+                    Search
+                  </Button>
+                </div>
+              </div>
+              <div className="w-full h-4"></div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="">
+          <DataTable
+            columns={columns}
+            data={productsData as productsDataType[]}
+            pageOptions={pageOptions}
+          />
+        </div>
       </div>
 
       <Dialog
@@ -415,15 +483,15 @@ const Menu = () => {
                   formData.append("price", toUpdate?.price.toString() ?? "");
                   formData.append(
                     "category",
-                    toUpdate?.category.id.toString() ?? ""
+                    toUpdate?.category.toString() ?? ""
                   );
                   formData.append(
                     "isBestSeller",
-                    toUpdate?.isBestSeller.toString() ?? ""
+                    toUpdate?.is_best_seller.toString() ?? ""
                   );
                   formData.append(
                     "isActive",
-                    toUpdate?.isActive.toString() ?? ""
+                    toUpdate?.is_active.toString() ?? ""
                   );
                   formData.append("updated_by", user?.user.email ?? "");
                   formData.append("_action", "updateProduct");

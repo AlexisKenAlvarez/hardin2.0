@@ -16,7 +16,7 @@ export function InputWithOptions({
   onChange,
   value,
 }: {
-  opts: IDropdownOptions[];
+  opts: IDropdownOptions[] | undefined;
   placeholder: string;
   label: string;
   onChange?: (selectedOption: IDropdownOptions) => void;
@@ -25,14 +25,19 @@ export function InputWithOptions({
   const [open, setOpen] = React.useState(false);
 
   const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null);
-  const [options, setOptions] = React.useState<IDropdownOptions[]>(opts);
+  const [options, setOptions] = React.useState<IDropdownOptions[] | undefined>(
+    opts ?? undefined
+  );
+  
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setFocusedIndex((prevIndex) => {
         const newIndex =
-          prevIndex === null ? 0 : Math.min(prevIndex + 1, opts.length - 1);
+          prevIndex === null
+            ? 0
+            : Math.min(prevIndex + 1, opts?.length ?? 0 - 1);
         return newIndex;
       });
     } else if (e.key === "ArrowUp") {
@@ -59,7 +64,7 @@ export function InputWithOptions({
 
   React.useEffect(() => {
     setOptions(opts);
-  }, []);
+  }, [opts]);
 
   return (
     <>
@@ -84,7 +89,7 @@ export function InputWithOptions({
                 if (onChange) {
                   onChange(selectedOption);
 
-                  const newOptions = opts.filter((opt) => {
+                  const newOptions = opts?.filter((opt) => {
                     if (
                       opt.label
                         .toLowerCase()

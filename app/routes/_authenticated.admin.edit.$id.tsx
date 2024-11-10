@@ -1,20 +1,44 @@
-import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  json,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
 
 import { ProductInfo } from "~/lib/types";
 import { CreateProduct, UploadProductImage } from "~/modules/admin/api";
-import AddProductForm from "~/modules/admin/views/AddProductForm";
+import EditProductForm from "~/modules/admin/views/EditProductForm";
 import { createSupabaseServerClient } from "~/supabase.server";
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   const { supabaseClient } = createSupabaseServerClient(request);
+  const { id } = params;
 
   const { data: categoryData } = await supabaseClient
     .from("products_category")
     .select("id, label")
     .eq("is_active", true);
 
+  if (!id) {
+    return redirect("/admin/dashboard");
+  }
+
+  const { data: productData } = await supabaseClient
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  const product = {
+    ...productData,
+    image: productData?.image_url
+      ? `${process.env.SUPABASE_URL}/storage/v1/object/public/hardin/products/${productData.image_url}`
+      : "",
+  };
+
   return {
     categoryData,
+    product,
   };
 }
 
@@ -57,8 +81,8 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 }
 
-const AddProduct = () => {
-  return <AddProductForm />;
+const EditProduct = () => {
+  return <EditProductForm />;
 };
 
-export default AddProduct;
+export default EditProduct;

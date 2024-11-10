@@ -20,7 +20,6 @@ export const UploadProductImage = async ({
     });
 
   if (storageError) {
-    console.log(storageError);
     throw new Error("Failed to upload image");
   }
 
@@ -44,7 +43,7 @@ export const CreateProduct = async ({
       category: parseInt(category),
       image_url: file_name,
       price: parseInt(price),
-      isBestSeller: best_seller === "true",
+      is_best_seller: best_seller === "true",
       name: product_name,
     })
     .select()
@@ -132,11 +131,11 @@ export const UpdateProduct = async ({
     }
   }
 
-  if (product.isBestSeller !== (isBestSeller === "true")) {
+  if (product.is_best_seller !== (isBestSeller === "true")) {
     const { error: updateError } = await supabaseClient
       .from("products")
       .update({
-        isBestSeller: isBestSeller === "true",
+        is_best_seller: isBestSeller === "true",
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
@@ -146,10 +145,10 @@ export const UpdateProduct = async ({
     }
   }
 
-  if (product.isActive !== (isActive === "true")) {
+  if (product.is_active !== (isActive === "true")) {
     const { error: updateError } = await supabaseClient
       .from("products")
-      .update({ isActive: isActive === "true", updated_by })
+      .update({ is_active: isActive === "true", updated_by })
       .eq("id", id);
 
     if (updateError) {
@@ -160,13 +159,15 @@ export const UpdateProduct = async ({
 
 export const GetAdminFilterOptions = async ({
   request,
+  category,
 }: {
   request: Request;
+  category: string;
 }) => {
   const { supabaseClient } = createSupabaseServerClient(request);
 
   const { data: nameOpts, error: nameOptsError } = await supabaseClient
-    .rpc("get_name_opts")
+    .rpc("get_name_opts", { category_filter: category })
     .select("*");
 
   if (nameOptsError) {
@@ -174,7 +175,7 @@ export const GetAdminFilterOptions = async ({
   }
 
   const { data: priceOpts, error: priceOptsError } = await supabaseClient
-    .rpc("get_price_opts")
+    .rpc("get_price_opts", { category_filter: category })
     .select("*");
 
   if (priceOptsError) {
