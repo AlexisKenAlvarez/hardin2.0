@@ -52,8 +52,8 @@ const EditProductForm = () => {
   const [key, setKey] = useState(+new Date());
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(product.image_url ?? null);
-  const [imgName, setImgName] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<string | null>(product.image ?? null);
+  const [imgName, setImgName] = useState(product.image_url);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CroppedPixels>({
     x: 0,
@@ -83,11 +83,11 @@ const EditProductForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      product_name: "",
+      product_name: product.name,
       price: "0",
       category: {
-        label: "--",
-        id: -1,
+        label: product.category?.label ?? "",
+        id: product.category?.id ?? -1,
       },
       featured: false,
       bestSeller: false,
@@ -109,7 +109,7 @@ const EditProductForm = () => {
       }
       const formData = new FormData();
       formData.append("action", "add_product");
-      formData.append("file_name", imgName);
+      formData.append("file_name", imgName ?? "");
       formData.append("file", croppedImage as string);
       formData.append("product_name", values.product_name);
       formData.append("price", values.price);

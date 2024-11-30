@@ -1,7 +1,7 @@
 export interface ProductInfo {
   product_name: string;
-  price: string;
   category: string;
+  sub_category?: string;
   featured: string;
   best_seller: string;
   file_name: string;

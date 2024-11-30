@@ -1,25 +1,24 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/react";
+import { redirect } from "@remix-run/react";
 import { createSupabaseServerClient } from "~/supabase.server";
 
-import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
-import { ProductUpdate } from "~/modules/admin/types";
-import Menu from "~/modules/admin/views/Menu";
-import { UnwrapArray } from "~/lib/utils";
 import { PageOptions } from "~/lib/types";
+import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
+import { ProductData, ProductUpdate } from "~/modules/admin/types";
+import Menu from "~/modules/admin/views/Menu";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { supabaseClient } = createSupabaseServerClient(request);
   const url = new URL(request.url);
-  const categoryId = url.searchParams.get("category");
+
   const { searchParams } = url;
+
+  const categoryId = url.searchParams.get("category");
 
   const { data: user } = await supabaseClient.auth.getSession();
 
   const pageSize = searchParams.get("pageSize") || "10";
   const page = searchParams.get("page") || "1";
-
-  const action = searchParams.get("action");
 
   const bestSeller = searchParams.get("isBestSeller");
   const isActive = searchParams.get("isActive");
@@ -27,9 +26,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const searchFilters = {
     name: searchParams.get("name"),
     price: searchParams.get("price"),
-    isBestSeller: bestSeller === "" ? null : bestSeller === "true",
-    isActive: isActive === "" ? null : isActive === "true",
+    isBestSeller:
+      bestSeller === "" || bestSeller === null ? null : bestSeller === "true",
+    isActive: isActive === "" || isActive === null ? null : isActive === "true",
     order: searchParams.get("order"),
+    sub_category: searchParams.get("sub_category"),
   };
 
   if (!categoryId) {
@@ -42,75 +43,45 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .select("id, label")
     .eq("is_active", true);
 
-  let pageOptions: PageOptions = {
-    pageSize: 0,
-    page: 0,
-    pages: 0,
-    total: 0,
+  const { data: productsData, count } = await supabaseClient
+    .rpc(
+      "filter_products",
+      {
+        active: searchFilters.isActive as boolean,
+        bestseller: searchFilters.isBestSeller as boolean,
+        name_filter: searchFilters.name ?? "",
+        price_filter: searchFilters.price ?? "",
+        order: searchFilters.order ?? "",
+        category_filter: categoryId ?? "",
+        sub_category_filter: searchFilters.sub_category ?? "",
+        id_filter: '',
+      },
+      {
+        count: "exact",
+      }
+    )
+    .select("*")
+    .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+
+  const pageOptions: PageOptions = {
+    pageSize: Number(pageSize),
+    page: Number(page),
+    pages: Math.ceil((count ?? 0) / Number(pageSize)),
+    total: count,
   };
 
-  const getProducts = async () => {
-    if (action === "search") {
-      const { data: productsData, count } = await supabaseClient
-        .rpc(
-          "filter_products",
-          {
-            active: searchFilters.isActive as boolean,
-            bestseller: searchFilters.isBestSeller as boolean,
-            name_filter: searchFilters.name ?? "",
-            price_filter: searchFilters.price ?? "",
-            order: searchFilters.order ?? "",
-            category_filter: categoryId ?? ''
-          },
-          {
-            count: "exact",
-          }
-        )
-        .select("*")
-        .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
+  const filterOptions = await GetAdminFilterOptions({
+    request,
+    category: categoryId,
+  });
 
-      pageOptions = {
-        pageSize: Number(pageSize),
-        page: Number(page),
-        pages: Math.ceil((count ?? 0) / Number(pageSize)),
-        total: count,
-      };
+  const typedProductsData = productsData as unknown as ProductData[];
 
-      return productsData;
-    } else {
-      const { data: productsData } = await supabaseClient
-        .from("products")
-        .select(
-          "id, name, price, image_url, is_best_seller, is_active, category, ...products_category!inner(label)"
-        )
-        .eq("category", categoryId)
-        .order("id", { ascending: false })
-        .range((Number(page) - 1) * +pageSize, +pageSize * +page - 1);
-
-      const { count } = await supabaseClient
-        .from("products")
-        .select("id", {
-          count: "exact",
-        })
-        .eq("category", categoryId);
-
-      pageOptions = {
-        pageSize: Number(pageSize),
-        page: Number(page),
-        pages: Math.ceil((count ?? 0) / Number(pageSize)),
-        total: count,
-      };
-
-      return productsData;
-    }
-  };
-  const productsData = await getProducts();
-  const filterOptions = await GetAdminFilterOptions({ request, category: categoryId });
-
-  const productsWithImage = productsData?.map(
-    (product: UnwrapArray<typeof productsData>) => {
+  const productsWithImage = typedProductsData?.flatMap(
+    (product: ProductData) => {
       return {
         ...product,
+        prices: product.prices.sort((a, b) => a.price! - b.price!),
         image_url: product.image_url
           ? `${process.env.SUPABASE_URL}/storage/v1/object/public/hardin/products/${product.image_url}`
           : "",
@@ -119,10 +90,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   );
 
   return {
-    filterOptions,
+    filterOptions: filterOptions ?? [],
     pageOptions,
-    productsData: productsWithImage,
-    categoryData,
+    productsData: productsWithImage ?? [],
+    categoryData: categoryData ?? [],
     categoryId,
     user: user.session,
   };
@@ -141,25 +112,25 @@ export async function action({ request }: ActionFunctionArgs) {
         productInfo: values,
       });
 
-      return json({
+      return {
         success: true,
         action: formData.get("_action"),
         message: "Product updated successfully",
-      });
+      };
     }
 
-    return json({
+    return {
       success: true,
       action: formData.get("_action"),
       message: "Product action success",
-    });
+    };
   } catch (error) {
     console.log(error);
-    return json({
+    return {
       success: false,
       action: null,
       message: "Failed to update product",
-    });
+    };
   }
 }
 
