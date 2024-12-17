@@ -42,7 +42,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ? `${process.env.SUPABASE_URL}/storage/v1/object/public/hardin/products/${productData.image_url}`
       : "",
     };
-    console.log("🚀 ~ loader ~ productData:", productData)
 
   return {
     categoryData,

@@ -30,16 +30,16 @@ import {
 } from "~/components/ui/select";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { DataTable } from "~/components/DataTable";
 import { InputWithOptions } from "~/components/ui/input-with-options";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
+import { IDropdownOptions } from "~/lib/types";
 import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
-import { CategoryFilterValues } from "../types";
-import { AnimatePresence, motion } from "framer-motion";
-import { IDropdownOptions } from "~/lib/types";
+import { CategoryFilterValues, SearchParameters } from "../types";
 
 const Menu = () => {
   const {
@@ -255,7 +255,7 @@ const Menu = () => {
                   params.set("isActive", categoryFilter?.isActive ?? "");
                   params.set("order", categoryFilter?.order ?? "");
                   params.set("action", "search");
-                  
+
                   setSearchParams(params);
                   setCategoryFilter({});
                 }}
@@ -304,10 +304,7 @@ const Menu = () => {
       </div>
 
       <div className="flex justify-between sm:flex-row flex-col gap-3 ">
-        <Button
-          className="gap-1"
-          onClick={() => setFilterOpen((val) => !val)}
-        >
+        <Button className="gap-1" onClick={() => setFilterOpen((val) => !val)}>
           <Filter size={14} />
           <span>Filter By</span>
         </Button>
@@ -442,8 +439,18 @@ const Menu = () => {
                     size={"sm"}
                     onClick={() => {
                       const params = new URLSearchParams(searchParams);
-                      params.set("name", categoryFilter?.name ?? "");
 
+                      const searchValues = {
+                        name: categoryFilter?.name ?? null,
+                        price: categoryFilter?.price ?? null,
+                        isBestSeller: categoryFilter?.isBestSeller ?? null,
+                        isActive: categoryFilter?.isActive ?? null,
+                        order: categoryFilter?.order ?? null,
+                      } as SearchParameters;
+                      console.log("🚀 ~ Menu ~ searchValues:", searchValues)
+
+                      params.set("searchValues", JSON.stringify(searchValues));
+                      params.set("action", "search");
                       setSearchParams(params);
                     }}
                   >

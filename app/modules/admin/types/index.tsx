@@ -30,6 +30,7 @@ export interface categoryType {
   label: string;
 }
 
+
 export interface ProductUpdate {
   id: string;
   name: string;
@@ -76,6 +77,15 @@ export interface ProductData {
   sub_category: string
   sub_category_id: number
   prices: Price[]
+}
+
+export interface SearchParameters {
+  name: string | null;
+  price: number | null;
+  isBestSeller: boolean | null;
+  isActive: boolean | null;
+  order: string | null;
+  sub_category: string | null;
 }
 
 

@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "~/supabase.server";
 
 import { PageOptions } from "~/lib/types";
 import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
-import { ProductData, ProductUpdate } from "~/modules/admin/types";
+import { ProductData, ProductUpdate, SearchParameters } from "~/modules/admin/types";
 import Menu from "~/modules/admin/views/Menu";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -20,18 +20,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const pageSize = searchParams.get("pageSize") || "10";
   const page = searchParams.get("page") || "1";
 
-  const bestSeller = searchParams.get("isBestSeller");
-  const isActive = searchParams.get("isActive");
+  const {name, isActive, price, isBestSeller: bestSeller } = JSON.parse(searchParams.get("searchValues") ?? "{}") as SearchParameters;
 
   const searchFilters = {
-    name: searchParams.get("name"),
-    price: searchParams.get("price"),
-    isBestSeller:
-      bestSeller === "" || bestSeller === null ? null : bestSeller === "true",
-    isActive: isActive === "" || isActive === null ? null : isActive === "true",
-    order: searchParams.get("order"),
-    sub_category: searchParams.get("sub_category"),
+    name: name ?? null,
+    price: price ? price.toString() : null,
+    isBestSeller: bestSeller ?? null,
+    isActive: isActive ?? null,
+    order: searchParams.get("order") ?? null,
+    sub_category: searchParams.get("sub_category") ?? null,
   };
+  console.log("🚀 ~ loader ~ searchFilters:", searchFilters)
 
   if (!categoryId) {
     searchParams.set("category", "1");
@@ -49,12 +48,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
       {
         active: searchFilters.isActive as boolean,
         bestseller: searchFilters.isBestSeller as boolean,
-        name_filter: searchFilters.name ?? "",
-        price_filter: searchFilters.price ?? "",
-        order: searchFilters.order ?? "",
+        name_filter: searchFilters.name!,
+        price_filter: searchFilters.price!,
+        order: searchFilters.order!,
         category_filter: categoryId ?? "",
-        sub_category_filter: searchFilters.sub_category ?? "",
-        id_filter: '',
+        sub_category_filter: searchFilters.sub_category!,
       },
       {
         count: "exact",
