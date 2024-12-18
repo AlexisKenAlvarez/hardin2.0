@@ -30,16 +30,16 @@ import {
 } from "~/components/ui/select";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { DataTable } from "~/components/DataTable";
 import { InputWithOptions } from "~/components/ui/input-with-options";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
+import { IDropdownOptions } from "~/lib/types";
 import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
-import { CategoryFilterValues } from "../types";
-import { AnimatePresence, motion } from "framer-motion";
-import { IDropdownOptions } from "~/lib/types";
+import { CategoryFilterValues, SearchParameters } from "../types";
 
 const Menu = () => {
   const {
@@ -50,6 +50,7 @@ const Menu = () => {
     categoryData,
     categoryId,
   } = useLoaderData<typeof loader>();
+  console.log("🚀 ~ Menu ~ productsData:", productsData);
   const actionData = useActionData<typeof action>();
   const { state } = useNavigation();
 
@@ -92,6 +93,21 @@ const Menu = () => {
     {
       accessorKey: "price",
       header: "Price",
+      cell: ({ row }) => {
+        const price = row.original.prices;
+
+        return (
+          <div className="">
+            {price.length > 1 ? (
+              <p>
+                ₱{price[0].price} - ₱{price[price.length - 1].price}
+              </p>
+            ) : (
+              <p>₱{price[0].price}</p>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "category",
@@ -160,10 +176,12 @@ const Menu = () => {
         const product = row.original;
 
         return (
-          <Button size="sm" className="flex items-center gap-1">
-            <Pencil size={10} className="-mt-[2px]" />
-            <span>Edit</span>
-          </Button>
+          <Link to={`/admin/edit/${product?.id}`}>
+            <Button size="sm" className="flex items-center gap-1">
+              <Pencil size={10} className="-mt-[2px]" />
+              <span>Edit</span>
+            </Button>
+          </Link>
         );
       },
     },
@@ -228,6 +246,16 @@ const Menu = () => {
                   const params = new URLSearchParams();
                   params.set("category", items.id.toString());
                   params.set("page", "1");
+                  params.set("name", categoryFilter?.name ?? "");
+                  params.set("price", categoryFilter?.price ?? "");
+                  params.set(
+                    "isBestSeller",
+                    categoryFilter?.isBestSeller ?? ""
+                  );
+                  params.set("isActive", categoryFilter?.isActive ?? "");
+                  params.set("order", categoryFilter?.order ?? "");
+                  params.set("action", "search");
+
                   setSearchParams(params);
                   setCategoryFilter({});
                 }}
@@ -276,11 +304,7 @@ const Menu = () => {
       </div>
 
       <div className="flex justify-between sm:flex-row flex-col gap-3 ">
-        <Button
-          variant="outline"
-          className="gap-1"
-          onClick={() => setFilterOpen((val) => !val)}
-        >
+        <Button className="gap-1" onClick={() => setFilterOpen((val) => !val)}>
           <Filter size={14} />
           <span>Filter By</span>
         </Button>
@@ -415,14 +439,17 @@ const Menu = () => {
                     size={"sm"}
                     onClick={() => {
                       const params = new URLSearchParams(searchParams);
-                      params.set("name", categoryFilter?.name ?? "");
-                      params.set("price", categoryFilter?.price ?? "");
-                      params.set(
-                        "isBestSeller",
-                        categoryFilter?.isBestSeller ?? ""
-                      );
-                      params.set("isActive", categoryFilter?.isActive ?? "");
-                      params.set("order", categoryFilter?.order ?? "");
+
+                      const searchValues = {
+                        name: categoryFilter?.name ?? null,
+                        price: categoryFilter?.price ?? null,
+                        isBestSeller: categoryFilter?.isBestSeller ?? null,
+                        isActive: categoryFilter?.isActive ?? null,
+                        order: categoryFilter?.order ?? null,
+                      } as SearchParameters;
+                      console.log("🚀 ~ Menu ~ searchValues:", searchValues)
+
+                      params.set("searchValues", JSON.stringify(searchValues));
                       params.set("action", "search");
                       setSearchParams(params);
                     }}
@@ -480,7 +507,7 @@ const Menu = () => {
                   const formData = new FormData();
                   formData.append("id", toUpdate?.id.toString() ?? "");
                   formData.append("name", toUpdate?.name.toString() ?? "");
-                  formData.append("price", toUpdate?.price.toString() ?? "");
+                  // formData.append("price", toUpdate?.price.toString() ?? "");
                   formData.append(
                     "category",
                     toUpdate?.category.toString() ?? ""

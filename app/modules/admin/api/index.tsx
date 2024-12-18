@@ -1,7 +1,7 @@
 import { decode } from "base64-arraybuffer";
 import { ProductInfo } from "~/lib/types";
 import { createSupabaseServerClient } from "~/supabase.server";
-import { ProductUpdate } from "../types";
+import { Price, ProductUpdate } from "../types";
 
 export const UploadProductImage = async ({
   request,
@@ -20,6 +20,7 @@ export const UploadProductImage = async ({
     });
 
   if (storageError) {
+    console.log("Storage Error", storageError);
     throw new Error("Failed to upload image");
   }
 
@@ -29,25 +30,49 @@ export const UploadProductImage = async ({
 export const CreateProduct = async ({
   request,
   productInfo,
+  price,
 }: {
   request: Request;
   productInfo: ProductInfo;
+  price: Price[];
 }) => {
   const { supabaseClient } = createSupabaseServerClient(request);
-  const { product_name, price, category, featured, best_seller, file_name } =
-    productInfo;
+  const {
+    product_name,
+    category,
+    featured,
+    best_seller,
+    file_name,
+    sub_category,
+  } = productInfo;
 
   const { data: productData, error: insertError } = await supabaseClient
     .from("products")
     .insert({
       category: parseInt(category),
       image_url: file_name,
-      price: parseInt(price),
       is_best_seller: best_seller === "true",
       name: product_name,
+      sub_category: sub_category ? parseInt(sub_category) : null,
     })
-    .select()
+    .select("id")
     .single();
+
+  if (productData) {
+    const { error: priceError } = await supabaseClient
+      .from("products_prices")
+      .insert([
+        ...price.map((p) => ({
+          product: productData?.id,
+          description: p.description ?? "",
+          price: p.price ?? 0,
+        })),
+      ]);
+
+    if (priceError) {
+      throw new Error("Failed to insert price");
+    }
+  }
 
   if (insertError) {
     throw new Error("Failed to create product");
@@ -77,7 +102,7 @@ export const UpdateProduct = async ({
 }) => {
   const { supabaseClient } = createSupabaseServerClient(request);
 
-  const { id, name, price, category, isBestSeller, updated_by, isActive } =
+  const { id, name, category, isBestSeller, updated_by, isActive } =
     productInfo;
 
   const { data: product, error: productError } = await supabaseClient
@@ -98,21 +123,6 @@ export const UpdateProduct = async ({
 
     if (updateError) {
       throw new Error("Failed to update product name");
-    }
-  }
-
-  if (product.price !== parseInt(price)) {
-    const { error: updateError } = await supabaseClient
-      .from("products")
-      .update({
-        price: parseInt(price),
-        updated_at: new Date().toISOString(),
-        updated_by,
-      })
-      .eq("id", id);
-
-    if (updateError) {
-      throw new Error("Failed to update product price");
     }
   }
 

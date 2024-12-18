@@ -44,7 +44,7 @@ export type Database = {
           is_active: boolean
           is_best_seller: boolean
           name: string
-          price: number
+          sub_category: number | null
           updated_at: string | null
           updated_by: string | null
         }
@@ -54,9 +54,9 @@ export type Database = {
           id?: number
           image_url: string
           is_active?: boolean
-          is_best_seller: boolean
+          is_best_seller?: boolean
           name: string
-          price: number
+          sub_category?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -68,7 +68,7 @@ export type Database = {
           is_active?: boolean
           is_best_seller?: boolean
           name?: string
-          price?: number
+          sub_category?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -78,6 +78,13 @@ export type Database = {
             columns: ["category"]
             isOneToOne: false
             referencedRelation: "products_category"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_sub_category_fkey"
+            columns: ["sub_category"]
+            isOneToOne: false
+            referencedRelation: "sub_category"
             referencedColumns: ["id"]
           },
         ]
@@ -102,6 +109,70 @@ export type Database = {
           label?: string
         }
         Relationships: []
+      }
+      products_prices: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          price: number
+          product: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          price: number
+          product: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          price?: number
+          product?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_prices_product_fkey"
+            columns: ["product"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_category: {
+        Row: {
+          category: number
+          created_at: string
+          id: number
+          is_active: boolean | null
+          label: string
+        }
+        Insert: {
+          category: number
+          created_at?: string
+          id?: number
+          is_active?: boolean | null
+          label: string
+        }
+        Update: {
+          category?: number
+          created_at?: string
+          id?: number
+          is_active?: boolean | null
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_category_category_fkey"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "products_category"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
@@ -144,32 +215,82 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      filter_products: {
-        Args: {
-          name_filter: string
-          price_filter: string
-          bestseller: boolean
-          active: boolean
-          order: string
-          category_filter: string
-        }
-        Returns: {
-          id: number
-          name: string
-          image_url: string
-          price: number
-          is_best_seller: boolean
-          is_active: boolean
-          category: number
-          label: string
-        }[]
-      }
+      filter_products:
+        | {
+            Args: {
+              name_filter: string
+              price_filter: string
+              bestseller: boolean
+              active: boolean
+              order: string
+              category_filter: string
+              sub_category_filter: string
+            }
+            Returns: {
+              id: number
+              name: string
+              image_url: string
+              is_best_seller: boolean
+              is_active: boolean
+              category: number
+              label: string
+              sub_category: string
+              sub_category_id: number
+              prices: Json
+            }[]
+          }
+        | {
+            Args: {
+              name_filter: string
+              price_filter: string
+              bestseller: boolean
+              active: boolean
+              order: string
+              category_filter: string
+              sub_category_filter: string
+              id_filter: string
+            }
+            Returns: {
+              id: number
+              name: string
+              image_url: string
+              is_best_seller: boolean
+              is_active: boolean
+              category: number
+              label: string
+              sub_category: string
+              sub_category_id: number
+              prices: Json
+            }[]
+          }
+        | {
+            Args: {
+              name_filter: string
+              price_filter: string
+              bestseller: boolean
+              active: boolean
+              order: string
+              sub_category_filter: string
+            }
+            Returns: {
+              id: number
+              name: string
+              image_url: string
+              price: number
+              is_best_seller: boolean
+              is_active: boolean
+              category: number
+              label: string
+              sub_category: string
+              sub_category_id: number
+            }[]
+          }
       get_name_opts: {
         Args: {
           category_filter: string
         }
         Returns: {
-          name: string
+          label: string
           value: string
         }[]
       }
@@ -178,7 +299,7 @@ export type Database = {
           category_filter: string
         }
         Returns: {
-          name: string
+          label: string
           value: string
         }[]
       }
