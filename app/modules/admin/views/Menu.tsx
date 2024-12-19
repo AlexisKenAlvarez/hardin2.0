@@ -6,7 +6,15 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { CircleX, Filter, Pencil, PlusCircle, Search } from "lucide-react";
+import {
+  ArrowUpDown,
+  CircleX,
+  Filter,
+  Pencil,
+  PlusCircle,
+  Search,
+  Trash,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 
@@ -50,7 +58,6 @@ const Menu = () => {
     categoryData,
     categoryId,
   } = useLoaderData<typeof loader>();
-  console.log("🚀 ~ Menu ~ productsData:", productsData);
   const actionData = useActionData<typeof action>();
   const { state } = useNavigation();
 
@@ -62,6 +69,29 @@ const Menu = () => {
   const [toUpdate, setToUpdate] = useState<productsDataType>();
   const [categoryFilter, setCategoryFilter] =
     useState<Partial<CategoryFilterValues>>();
+  const [sortPrice, setSortPrice] = useState<string | null>();
+  const [sortedData, setSortedData] = useState(productsData);
+
+  const handleSort = () => {
+    const newSortOrder = sortPrice === "asc" ? "desc" : "asc";
+    setSortPrice(newSortOrder);
+
+    const sorted = [...productsData].sort((a, b) => {
+      if (newSortOrder === "asc") {
+        return (
+          Number(a.prices[a.prices.length - 1]?.price ?? 0) -
+          Number(b.prices[b.prices.length - 1]?.price ?? 0)
+        );
+      } else {
+        return (
+          Number(b.prices[b.prices.length - 1]?.price ?? 0) -
+          Number(a.prices[a.prices.length - 1]?.price ?? 0)
+        );
+      }
+    });
+
+    setSortedData(sorted);
+  };
 
   const columns: ColumnDef<productsDataType>[] = [
     {
@@ -88,11 +118,39 @@ const Menu = () => {
     },
     {
       accessorKey: "name",
-      header: "Name",
+      header: ({ column }) => {
+        return (
+          <button
+            className="flex gap-1"
+            onClick={() => {
+              column.toggleSorting(
+                !column.getIsSorted() ? true : column.getIsSorted() === "asc"
+              );
+            }}
+          >
+            Name
+            <ArrowUpDown className="h-4 w-4" />
+          </button>
+        );
+      },
     },
     {
       accessorKey: "price",
-      header: "Price",
+      header: ({ table }) => {
+        return (
+          <button
+            className="flex gap-1"
+            onClick={() => {
+              table.resetSorting();
+              handleSort();
+              table.reset();
+            }}
+          >
+            Price
+            <ArrowUpDown className="h-4 w-4" />
+          </button>
+        );
+      },
       cell: ({ row }) => {
         const price = row.original.prices;
 
@@ -110,17 +168,9 @@ const Menu = () => {
       },
     },
     {
-      accessorKey: "category",
-      header: "Category",
-      cell: ({ row }) => {
-        const category = row.original?.category;
-
-        return (
-          <div className="">
-            <p className="">{category}</p>
-          </div>
-        );
-      },
+      accessorKey: "sub_category",
+      header: "Drinks Category",
+      enableHiding: true,
     },
     {
       accessorKey: "isBestSeller",
@@ -176,12 +226,22 @@ const Menu = () => {
         const product = row.original;
 
         return (
-          <Link to={`/admin/edit/${product?.id}`}>
-            <Button size="sm" className="flex items-center gap-1">
-              <Pencil size={10} className="-mt-[2px]" />
-              <span>Edit</span>
+          <div className="flex gap-2">
+            <Link to={`/admin/edit/${product?.id}`}>
+              <Button size="sm" className="flex items-center gap-1">
+                <Pencil size={8} className="-mt-[2px]" />
+                <span className="text-xs">Edit</span>
+              </Button>
+            </Link>
+            <Button
+              size="sm"
+              className="flex items-center gap-1"
+              variant={"destructive"}
+            >
+              <Trash size={8} className="-mt-[2px]" />
+              <span className="text-xs">Delete</span>
             </Button>
-          </Link>
+          </div>
         );
       },
     },
@@ -190,11 +250,7 @@ const Menu = () => {
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams);
 
-    params.delete("name");
-    params.delete("price");
-    params.delete("isBestSeller");
-    params.delete("isActive");
-    params.delete("order");
+    params.delete("searchValues");
     params.delete("page");
     params.delete("action");
 
@@ -218,6 +274,10 @@ const Menu = () => {
     });
   }, []);
 
+  useEffect(() => {
+    setSortedData(productsData);
+  }, [productsData])
+
   return (
     <div className="space-y-5">
       <div className="">
@@ -234,7 +294,7 @@ const Menu = () => {
           </Link>
         </div>
 
-        <ul className=" gap-12  lg:flex hidden mt-10">
+        <ul className="gap-12 lg:flex hidden mt-10">
           {categoryData?.map((items) => (
             <li key={items.id}>
               <button
@@ -318,7 +378,7 @@ const Menu = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className={cn("w-full   overflow-hidden")}
+              className={cn("w-full  bg-gray-50 rounded-md overflow-hidden")}
             >
               <div className="p-3 px-4 flex flex-wrap items-end gap-2">
                 <InputWithOptions
@@ -447,7 +507,6 @@ const Menu = () => {
                         isActive: categoryFilter?.isActive ?? null,
                         order: categoryFilter?.order ?? null,
                       } as SearchParameters;
-                      console.log("🚀 ~ Menu ~ searchValues:", searchValues)
 
                       params.set("searchValues", JSON.stringify(searchValues));
                       params.set("action", "search");
@@ -467,8 +526,11 @@ const Menu = () => {
         <div className="">
           <DataTable
             columns={columns}
-            data={productsData as productsDataType[]}
+            data={sortedData}
             pageOptions={pageOptions}
+            columnVisibility={{
+              sub_category: searchParams.get("category") === "1" ? true : false,
+            }}
           />
         </div>
       </div>

@@ -33,6 +33,7 @@ export default {
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
+          text: "#5B5B5B",
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
         },

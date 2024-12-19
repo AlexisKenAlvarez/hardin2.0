@@ -1,8 +1,22 @@
 import { Outlet, redirect } from "@remix-run/react";
 import HardinLogo from "~/components/logo";
 import AdminNav from "~/modules/admin/components/AdminNav";
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { createSupabaseServerClient } from "~/supabase.server";
+
+export const meta: MetaFunction = () => {
+  return [
+    { title: "Hardin - Admin" },
+    {
+      property: "og:title",
+      content: "Hardin Admin Dashboard",
+    },
+    {
+      name: "Authorized personel only",
+      content: "Hardin Dashboard",
+    },
+  ];
+};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { supabaseClient } = await createSupabaseServerClient(request);

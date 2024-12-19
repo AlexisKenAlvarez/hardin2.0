@@ -1,14 +1,19 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { redirect } from "@remix-run/react";
+import { redirect, useRevalidator } from "@remix-run/react";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 import { PageOptions } from "~/lib/types";
 import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
-import { ProductData, ProductUpdate, SearchParameters } from "~/modules/admin/types";
+import {
+  ProductData,
+  ProductUpdate,
+  SearchParameters,
+} from "~/modules/admin/types";
 import Menu from "~/modules/admin/views/Menu";
+import useTabFocus from "~/utils/useTabFocus";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
   const url = new URL(request.url);
 
   const { searchParams } = url;
@@ -20,7 +25,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const pageSize = searchParams.get("pageSize") || "10";
   const page = searchParams.get("page") || "1";
 
-  const {name, isActive, price, isBestSeller: bestSeller } = JSON.parse(searchParams.get("searchValues") ?? "{}") as SearchParameters;
+  const {
+    name,
+    isActive,
+    price,
+    isBestSeller: bestSeller,
+  } = JSON.parse(searchParams.get("searchValues") ?? "{}") as SearchParameters;
 
   const searchFilters = {
     name: name ?? null,
@@ -30,7 +40,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     order: searchParams.get("order") ?? null,
     sub_category: searchParams.get("sub_category") ?? null,
   };
-  console.log("🚀 ~ loader ~ searchFilters:", searchFilters)
 
   if (!categoryId) {
     searchParams.set("category", "1");
@@ -133,6 +142,12 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 const MenuIndex = () => {
+  const revalidator = useRevalidator();
+
+  useTabFocus(() => {
+    revalidator.revalidate();
+  });
+
   return (
     <>
       <Menu />
