@@ -2,11 +2,15 @@
 
 import {
   ColumnDef,
+  VisibilityState,
   flexRender,
   getCoreRowModel,
   useReactTable,
+  getSortedRowModel,
+  SortingState,
 } from "@tanstack/react-table";
 
+import { useSearchParams } from "@remix-run/react";
 import {
   Table,
   TableBody,
@@ -15,29 +19,42 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Button } from "./ui/button";
 import { PageOptions } from "~/lib/types";
-import { useSearchParams } from "@remix-run/react";
+import { Button } from "./ui/button";
+import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   pageOptions: PageOptions;
+  columnVisibility: VisibilityState;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   pageOptions,
+  columnVisibility,
 }: DataTableProps<TData, TValue>) {
   const [searchParams, setSearchParams] = useSearchParams();
-
   const page = Number(searchParams.get("page")) || 1;
+  const [sorting, setSorting] = useState<SortingState>([
+    {
+      id: "id",
+      desc: true,
+    }
+  ])
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      columnVisibility,
+      sorting
+    },
   });
 
   const handleNextPage = (range: "single" | "max") => {
@@ -71,7 +88,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="pl-3">
                       {header.isPlaceholder
                         ? null
                         : flexRender(

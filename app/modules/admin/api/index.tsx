@@ -12,7 +12,7 @@ export const UploadProductImage = async ({
   file_name: string;
   base64: string;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
   const { error: storageError } = await supabaseClient.storage
     .from("hardin")
     .upload(`products/${file_name}`, decode(base64), {
@@ -36,7 +36,7 @@ export const CreateProduct = async ({
   productInfo: ProductInfo;
   price: Price[];
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
   const {
     product_name,
     category,
@@ -100,7 +100,7 @@ export const UpdateProduct = async ({
   request: Request;
   productInfo: ProductUpdate;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
 
   const { id, name, category, isBestSeller, updated_by, isActive } =
     productInfo;
@@ -174,7 +174,7 @@ export const GetAdminFilterOptions = async ({
   request: Request;
   category: string;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
 
   const { data: nameOpts, error: nameOptsError } = await supabaseClient
     .rpc("get_name_opts", { category_filter: category })

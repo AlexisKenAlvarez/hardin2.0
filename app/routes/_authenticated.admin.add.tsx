@@ -7,7 +7,7 @@ import AddProductForm from "~/modules/admin/views/AddProductForm";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
 
   const { data: categoryData } = await supabaseClient
     .from("products_category")

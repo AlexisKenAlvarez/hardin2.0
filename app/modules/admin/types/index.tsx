@@ -88,12 +88,3 @@ export interface SearchParameters {
   sub_category: string | null;
 }
 
-
-// product_name: z
-// .string()
-// .min(2, { message: "Product name must have at least 2 characters" })
-// .max(70, { message: "Product name must not exceed 70 characters" }),
-// category: categorySchema,
-// sub_category: categorySchema.nullish(),
-// featured: z.boolean().optional(),
-// bestSeller: z.boolean().optional(),

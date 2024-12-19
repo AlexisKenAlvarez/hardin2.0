@@ -106,6 +106,7 @@ const AddProductForm = () => {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log(prices)
     if (!uploadedImage) {
       setIsImageMissing(true);
       return;
@@ -134,11 +135,11 @@ const AddProductForm = () => {
       formData.append("action", "add_product");
       formData.append("file_name", imgName);
       formData.append("file", croppedImage as string);
-      formData.append("price", JSON.stringify(prices));
+      formData.append("price", JSON.stringify(prices.filter(x => x.price !== null)));
       formData.append("product_values", JSON.stringify(values));
 
       submit(formData, { method: "post" });
-      setPrices([{ description: "", price: null }]);
+      
     } catch (error) {
       console.log(error);
     }
@@ -153,6 +154,7 @@ const AddProductForm = () => {
       setKey(+new Date());
       setUploadedImage(null);
       setCroppedImage(null);
+      setPrices([{ description: "", price: null }]);
     }
   }, [data, form]);
 
@@ -318,7 +320,7 @@ const AddProductForm = () => {
             </div>
             {form.formState.isSubmitted && prices[0].price === null && (
               <p className="text-red-500 text-sm font-medium">
-                Please enter valid price.
+                Please enter valid price. {prices[0].price}
               </p>
             )}
             <Button
