@@ -1,20 +1,27 @@
-import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 
 import { ProductInfo } from "~/lib/types";
 import { CreateProduct, UploadProductImage } from "~/modules/admin/api";
+import { ProductValue } from "~/modules/admin/types";
 import AddProductForm from "~/modules/admin/views/AddProductForm";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request);
+  const { supabaseClient } = createSupabaseServerClient(request, true);
 
   const { data: categoryData } = await supabaseClient
     .from("products_category")
     .select("id, label")
     .eq("is_active", true);
 
+  const { data: subCategories } = await supabaseClient
+    .from("sub_category")
+    .select("id, label, category")
+    .eq("is_active", true);
+
   return {
     categoryData,
+    subCategories,
   };
 }
 
@@ -23,13 +30,18 @@ export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
     const action = formData.get("action");
 
+    const { category, featured, product_name, sub_category, bestSeller } =
+      JSON.parse(formData.get("product_values") as string) as ProductValue;
+
+    const price = JSON.parse(formData.get("price") as string);
+
     if (action === "add_product") {
       const productInfo: ProductInfo = {
-        product_name: formData.get("product_name") as string,
-        price: formData.get("price") as string,
-        category: formData.get("category") as string,
-        featured: formData.get("featured") as string,
-        best_seller: formData.get("best_seller") as string,
+        product_name,
+        category: category.id.toString(),
+        sub_category: sub_category?.id.toString(),
+        featured,
+        best_seller: bestSeller,
         file_name: formData.get("file_name") as string,
       };
 
@@ -41,19 +53,22 @@ export async function action({ request }: ActionFunctionArgs) {
         file_name: productInfo.file_name,
         base64,
       });
-      await CreateProduct({ request, productInfo });
+
+      await CreateProduct({ request, productInfo, price });
     }
-    return json({
+    return {
       success: true,
-      message: null,
-    });
+      message: `Product ${
+        formData.get("product_name") as string
+      } added successfully`,
+    };
   } catch (error) {
     console.log(error);
 
-    return json({
+    return {
       success: false,
       message: "Failed to add product",
-    });
+    };
   }
 }
 

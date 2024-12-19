@@ -6,7 +6,15 @@ import {
   useSearchParams,
   useSubmit,
 } from "@remix-run/react";
-import { CircleX, Filter, Pencil, PlusCircle, Search } from "lucide-react";
+import {
+  ArrowUpDown,
+  CircleX,
+  Filter,
+  Pencil,
+  PlusCircle,
+  Search,
+  Trash,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 
@@ -30,16 +38,16 @@ import {
 } from "~/components/ui/select";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { DataTable } from "~/components/DataTable";
 import { InputWithOptions } from "~/components/ui/input-with-options";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
+import { IDropdownOptions } from "~/lib/types";
 import { cn, UnwrapArray } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.menu";
-import { CategoryFilterValues } from "../types";
-import { AnimatePresence, motion } from "framer-motion";
-import { IDropdownOptions } from "~/lib/types";
+import { CategoryFilterValues, SearchParameters } from "../types";
 
 const Menu = () => {
   const {
@@ -61,6 +69,29 @@ const Menu = () => {
   const [toUpdate, setToUpdate] = useState<productsDataType>();
   const [categoryFilter, setCategoryFilter] =
     useState<Partial<CategoryFilterValues>>();
+  const [sortPrice, setSortPrice] = useState<string | null>();
+  const [sortedData, setSortedData] = useState(productsData);
+
+  const handleSort = () => {
+    const newSortOrder = sortPrice === "asc" ? "desc" : "asc";
+    setSortPrice(newSortOrder);
+
+    const sorted = [...productsData].sort((a, b) => {
+      if (newSortOrder === "asc") {
+        return (
+          Number(a.prices[a.prices.length - 1]?.price ?? 0) -
+          Number(b.prices[b.prices.length - 1]?.price ?? 0)
+        );
+      } else {
+        return (
+          Number(b.prices[b.prices.length - 1]?.price ?? 0) -
+          Number(a.prices[a.prices.length - 1]?.price ?? 0)
+        );
+      }
+    });
+
+    setSortedData(sorted);
+  };
 
   const columns: ColumnDef<productsDataType>[] = [
     {
@@ -87,24 +118,59 @@ const Menu = () => {
     },
     {
       accessorKey: "name",
-      header: "Name",
+      header: ({ column }) => {
+        return (
+          <button
+            className="flex gap-1"
+            onClick={() => {
+              column.toggleSorting(
+                !column.getIsSorted() ? true : column.getIsSorted() === "asc"
+              );
+            }}
+          >
+            Name
+            <ArrowUpDown className="h-4 w-4" />
+          </button>
+        );
+      },
     },
     {
       accessorKey: "price",
-      header: "Price",
-    },
-    {
-      accessorKey: "category",
-      header: "Category",
+      header: ({ table }) => {
+        return (
+          <button
+            className="flex gap-1"
+            onClick={() => {
+              table.resetSorting();
+              handleSort();
+              table.reset();
+            }}
+          >
+            Price
+            <ArrowUpDown className="h-4 w-4" />
+          </button>
+        );
+      },
       cell: ({ row }) => {
-        const category = row.original?.category;
+        const price = row.original.prices;
 
         return (
           <div className="">
-            <p className="">{category}</p>
+            {price.length > 1 ? (
+              <p>
+                ₱{price[0].price} - ₱{price[price.length - 1].price}
+              </p>
+            ) : (
+              <p>₱{price[0].price}</p>
+            )}
           </div>
         );
       },
+    },
+    {
+      accessorKey: "sub_category",
+      header: "Drinks Category",
+      enableHiding: true,
     },
     {
       accessorKey: "isBestSeller",
@@ -160,10 +226,22 @@ const Menu = () => {
         const product = row.original;
 
         return (
-          <Button size="sm" className="flex items-center gap-1">
-            <Pencil size={10} className="-mt-[2px]" />
-            <span>Edit</span>
-          </Button>
+          <div className="flex gap-2">
+            <Link to={`/admin/edit/${product?.id}`}>
+              <Button size="sm" className="flex items-center gap-1">
+                <Pencil size={8} className="-mt-[2px]" />
+                <span className="text-xs">Edit</span>
+              </Button>
+            </Link>
+            <Button
+              size="sm"
+              className="flex items-center gap-1"
+              variant={"destructive"}
+            >
+              <Trash size={8} className="-mt-[2px]" />
+              <span className="text-xs">Delete</span>
+            </Button>
+          </div>
         );
       },
     },
@@ -172,11 +250,7 @@ const Menu = () => {
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams);
 
-    params.delete("name");
-    params.delete("price");
-    params.delete("isBestSeller");
-    params.delete("isActive");
-    params.delete("order");
+    params.delete("searchValues");
     params.delete("page");
     params.delete("action");
 
@@ -200,6 +274,10 @@ const Menu = () => {
     });
   }, []);
 
+  useEffect(() => {
+    setSortedData(productsData);
+  }, [productsData])
+
   return (
     <div className="space-y-5">
       <div className="">
@@ -216,7 +294,7 @@ const Menu = () => {
           </Link>
         </div>
 
-        <ul className=" gap-12  lg:flex hidden mt-10">
+        <ul className="gap-12 lg:flex hidden mt-10">
           {categoryData?.map((items) => (
             <li key={items.id}>
               <button
@@ -228,6 +306,16 @@ const Menu = () => {
                   const params = new URLSearchParams();
                   params.set("category", items.id.toString());
                   params.set("page", "1");
+                  params.set("name", categoryFilter?.name ?? "");
+                  params.set("price", categoryFilter?.price ?? "");
+                  params.set(
+                    "isBestSeller",
+                    categoryFilter?.isBestSeller ?? ""
+                  );
+                  params.set("isActive", categoryFilter?.isActive ?? "");
+                  params.set("order", categoryFilter?.order ?? "");
+                  params.set("action", "search");
+
                   setSearchParams(params);
                   setCategoryFilter({});
                 }}
@@ -276,11 +364,7 @@ const Menu = () => {
       </div>
 
       <div className="flex justify-between sm:flex-row flex-col gap-3 ">
-        <Button
-          variant="outline"
-          className="gap-1"
-          onClick={() => setFilterOpen((val) => !val)}
-        >
+        <Button className="gap-1" onClick={() => setFilterOpen((val) => !val)}>
           <Filter size={14} />
           <span>Filter By</span>
         </Button>
@@ -294,7 +378,7 @@ const Menu = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className={cn("w-full   overflow-hidden")}
+              className={cn("w-full  bg-gray-50 rounded-md overflow-hidden")}
             >
               <div className="p-3 px-4 flex flex-wrap items-end gap-2">
                 <InputWithOptions
@@ -415,14 +499,16 @@ const Menu = () => {
                     size={"sm"}
                     onClick={() => {
                       const params = new URLSearchParams(searchParams);
-                      params.set("name", categoryFilter?.name ?? "");
-                      params.set("price", categoryFilter?.price ?? "");
-                      params.set(
-                        "isBestSeller",
-                        categoryFilter?.isBestSeller ?? ""
-                      );
-                      params.set("isActive", categoryFilter?.isActive ?? "");
-                      params.set("order", categoryFilter?.order ?? "");
+
+                      const searchValues = {
+                        name: categoryFilter?.name ?? null,
+                        price: categoryFilter?.price ?? null,
+                        isBestSeller: categoryFilter?.isBestSeller ?? null,
+                        isActive: categoryFilter?.isActive ?? null,
+                        order: categoryFilter?.order ?? null,
+                      } as SearchParameters;
+
+                      params.set("searchValues", JSON.stringify(searchValues));
                       params.set("action", "search");
                       setSearchParams(params);
                     }}
@@ -440,8 +526,11 @@ const Menu = () => {
         <div className="">
           <DataTable
             columns={columns}
-            data={productsData as productsDataType[]}
+            data={sortedData}
             pageOptions={pageOptions}
+            columnVisibility={{
+              sub_category: searchParams.get("category") === "1" ? true : false,
+            }}
           />
         </div>
       </div>
@@ -480,7 +569,7 @@ const Menu = () => {
                   const formData = new FormData();
                   formData.append("id", toUpdate?.id.toString() ?? "");
                   formData.append("name", toUpdate?.name.toString() ?? "");
-                  formData.append("price", toUpdate?.price.toString() ?? "");
+                  // formData.append("price", toUpdate?.price.toString() ?? "");
                   formData.append(
                     "category",
                     toUpdate?.category.toString() ?? ""
