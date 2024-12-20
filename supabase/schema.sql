@@ -72,92 +72,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
-CREATE OR REPLACE FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "sub_category_filter" "text") RETURNS TABLE("id" bigint, "name" character varying, "image_url" character varying, "price" bigint, "is_best_seller" boolean, "is_active" boolean, "category" bigint, "label" character varying, "sub_category" character varying, "sub_category_id" bigint)
+CREATE OR REPLACE FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") RETURNS TABLE("id" bigint, "name" character varying, "image_url" character varying, "is_best_seller" boolean, "is_active" boolean, "category" bigint, "label" character varying, "sub_category" character varying, "sub_category_id" bigint, "prices" "jsonb")
     LANGUAGE "plpgsql"
-    AS $$
-DECLARE
+    AS $$DECLARE
     condition text := '';
-    sql text := 'SELECT DISTINCT on (p.id)
-              p.id, 
-              p.name, 
-              p.image_url,
-              p.is_best_seller,
-              p.is_active, 
-              p.category, 
-              pc.label, 
-              pp.price,
-              sc.label as sub_category
-              p.sub_category as sub_category_id
-              FROM products p
-              LEFT JOIN products_category pc ON pc.id = p.category
-              LEFT JOIN products_prices pp ON pp.product = p.Id
-              LEFT JOIN sub_category sc ON sc.category = p.sub_category
-              WHERE p.category = ' || category_filter || '';
+    sql text := '';
 BEGIN
-    -- Build the condition dynamically based on the value of "name"
-    IF name_filter IS NOT NULL AND name_filter != '' THEN
-        condition := condition || ' AND name ILIKE ''%' || name_filter || '%''';
-    END IF;
 
-    IF price_filter IS NOT NULL AND price_filter != '' THEN
-        condition := condition || ' AND pp.price = ' || price_filter || '';
-    END IF;
-
-    IF bestSeller IS NOT NULL THEN
-        condition := condition || ' AND is_best_seller = ' || bestSeller || '';
-    END IF;
-
-    IF active IS NOT NULL THEN
-        condition := condition || ' AND p.is_active = ' || active || '';
-    END IF;
-
-    IF sub_category_filter IS NOT NULL THEN
-        condition := condition || ' AND sc.id = ' || sub_category_filter || '';
-    END IF;
-
-    IF "order" IS NOT NULL AND "order" != '' THEN
-        IF "order" = 'newest' THEN
-            condition := condition || ' ORDER BY p.created_at DESC';
-        ELSE
-            condition := condition || ' ORDER BY p.created_at ASC';
-        END IF;
-    END IF;
-
-    sql := sql || condition;
-
-    -- Execute the dynamic SQL and return the result
-    RETURN QUERY EXECUTE sql;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "sub_category_filter" "text") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") RETURNS TABLE("id" bigint, "name" character varying, "image_url" character varying, "is_best_seller" boolean, "is_active" boolean, "category" bigint, "label" character varying, "price" bigint, "sub_category" character varying, "sub_category_id" bigint)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    condition text := '';
-    sql text := 'SELECT 
-              DISTINCT ON (p.id)
-              p.id, 
-              p.name, 
-              p.image_url,
-              p.is_best_seller,
-              p.is_active, 
-              p.category, 
-              pc.label, 
-              pp.price,
-              sc.label as sub_category,
-              p.sub_category as sub_category_id
-              FROM products p
-              LEFT JOIN products_category pc ON pc.id = p.category
-              LEFT JOIN products_prices pp ON pp.product = p.Id
-              LEFT JOIN sub_category sc ON sc.id = p.sub_category
-              WHERE 1 = 1 ';
-BEGIN
-    -- Build the condition dynamically based on the value of "name"
+       -- Build the condition dynamically based on the value of "name"
     IF name_filter IS NOT NULL AND name_filter != '' THEN
         condition := condition || ' AND name ILIKE ''%' || name_filter || '%''';
     END IF;
@@ -167,7 +89,7 @@ BEGIN
     END IF;
 
     IF price_filter IS NOT NULL AND price_filter != '' THEN
-        condition := condition || ' AND pp.price = ' || price_filter || '';
+        condition := condition || ' AND pp.product in (SELECT product FROM select_product_price)';
     END IF;
 
     IF bestSeller IS NOT NULL THEN
@@ -190,12 +112,60 @@ BEGIN
         END IF;
     END IF;
 
-    sql := sql || condition;
+    sql := '
+    WITH select_product_price AS (
+        SELECT product
+        FROM products_prices wpp
+        WHERE 1 = 1 ';
+
+    IF price_filter IS NOT NULL AND price_filter != '' THEN 
+        sql := sql || ' AND wpp.price = ' || quote_literal(price_filter);
+    ELSE
+        sql := sql || ' AND FALSE'; -- Return no rows if price_filter is NULL
+    END IF;
+
+    sql := sql || '
+    )
+    SELECT 
+        p.id, 
+        p.name, 
+        p.image_url,
+        p.is_best_seller,
+        p.is_active, 
+        p.category, 
+        pc.label, 
+        sc.label AS sub_category,
+        p.sub_category AS sub_category_id,
+        jsonb_agg(
+            jsonb_build_object(''price'', pp.price, ''description'', pp.description)
+        ) AS prices
+    FROM products p
+    LEFT JOIN products_category pc ON pc.id = p.category
+    LEFT JOIN products_prices pp ON pp.product = p.id
+    LEFT JOIN sub_category sc ON sc.id = p.sub_category
+    WHERE 1 = 1 ' || condition;
+
+    -- Add condition for price_filter (based on the CTE)
+    IF price_filter IS NOT NULL AND price_filter != '' THEN
+        sql := sql || ' AND pp.product IN (SELECT product FROM select_product_price)';
+    END IF;
+
+    sql := sql || '
+    GROUP BY 
+        p.id, 
+        p.name, 
+        p.image_url, 
+        p.is_best_seller, 
+        p.is_active, 
+        p.category, 
+        pc.label, 
+        sc.label, 
+        p.sub_category
+    ORDER BY p.name;';
 
     -- Execute the dynamic SQL and return the result
     RETURN QUERY EXECUTE sql;
-END;
-$$;
+END;$$;
 
 
 ALTER FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") OWNER TO "postgres";
@@ -252,31 +222,6 @@ COMMENT ON TABLE "public"."sub_category" IS 'Sub category for drinks';
 
 ALTER TABLE "public"."sub_category" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
     SEQUENCE NAME "public"."drinks_category_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."featured" (
-    "id" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "product" bigint NOT NULL
-);
-
-
-ALTER TABLE "public"."featured" OWNER TO "postgres";
-
-
-COMMENT ON TABLE "public"."featured" IS 'Featured products';
-
-
-
-ALTER TABLE "public"."featured" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."featured_id_seq"
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -404,16 +349,6 @@ ALTER TABLE ONLY "public"."sub_category"
 
 
 
-ALTER TABLE ONLY "public"."featured"
-    ADD CONSTRAINT "featured_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."featured"
-    ADD CONSTRAINT "featured_product_key" UNIQUE ("product");
-
-
-
 ALTER TABLE ONLY "public"."products_category"
     ADD CONSTRAINT "products_category_pkey" PRIMARY KEY ("id");
 
@@ -439,11 +374,6 @@ ALTER TABLE ONLY "public"."users"
 
 
 
-ALTER TABLE ONLY "public"."featured"
-    ADD CONSTRAINT "featured_product_fkey" FOREIGN KEY ("product") REFERENCES "public"."products"("id") ON DELETE CASCADE;
-
-
-
 ALTER TABLE ONLY "public"."products"
     ADD CONSTRAINT "products_category_fkey" FOREIGN KEY ("category") REFERENCES "public"."products_category"("id");
 
@@ -464,11 +394,11 @@ ALTER TABLE ONLY "public"."sub_category"
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."featured" USING (true);
+CREATE POLICY "Enable all for service role" ON "public"."products" TO "service_role" USING (true);
 
 
 
-CREATE POLICY "Enable read access for all users" ON "public"."products" TO "authenticated" USING (true);
+CREATE POLICY "Enable read access for all normal users" ON "public"."products" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -486,9 +416,6 @@ CREATE POLICY "Enable read access for all users" ON "public"."sub_category" USIN
 
 CREATE POLICY "ReadAll" ON "public"."products_category" TO "anon" USING (true);
 
-
-
-ALTER TABLE "public"."featured" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."products" ENABLE ROW LEVEL SECURITY;
@@ -707,12 +634,6 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "sub_category_filter" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "sub_category_filter" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "sub_category_filter" "text") TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."filter_products"("name_filter" "text", "price_filter" "text", "bestseller" boolean, "active" boolean, "order" "text", "category_filter" "text", "sub_category_filter" "text") TO "service_role";
@@ -755,18 +676,6 @@ GRANT ALL ON TABLE "public"."sub_category" TO "service_role";
 GRANT ALL ON SEQUENCE "public"."drinks_category_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."drinks_category_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."drinks_category_id_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."featured" TO "anon";
-GRANT ALL ON TABLE "public"."featured" TO "authenticated";
-GRANT ALL ON TABLE "public"."featured" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."featured_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."featured_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."featured_id_seq" TO "service_role";
 
 
 

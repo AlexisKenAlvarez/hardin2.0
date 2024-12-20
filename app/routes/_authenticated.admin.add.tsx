@@ -7,7 +7,7 @@ import AddProductForm from "~/modules/admin/views/AddProductForm";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabaseClient } = createSupabaseServerClient(request);
 
   const { data: categoryData } = await supabaseClient
     .from("products_category")
@@ -30,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
     const action = formData.get("action");
 
-    const { category, featured, product_name, sub_category, bestSeller } =
+    const { category, product_name, sub_category, bestSeller } =
       JSON.parse(formData.get("product_values") as string) as ProductValue;
 
     const price = JSON.parse(formData.get("price") as string);
@@ -40,7 +40,6 @@ export async function action({ request }: ActionFunctionArgs) {
         product_name,
         category: category.id.toString(),
         sub_category: sub_category?.id.toString(),
-        featured,
         best_seller: bestSeller,
         file_name: formData.get("file_name") as string,
       };

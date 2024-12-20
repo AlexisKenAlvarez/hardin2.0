@@ -9,32 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      featured: {
-        Row: {
-          created_at: string
-          id: number
-          product: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          product: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          product?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "featured_product_fkey"
-            columns: ["product"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products: {
         Row: {
           category: number
@@ -215,76 +189,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      filter_products:
-        | {
-            Args: {
-              name_filter: string
-              price_filter: string
-              bestseller: boolean
-              active: boolean
-              order: string
-              category_filter: string
-              sub_category_filter: string
-            }
-            Returns: {
-              id: number
-              name: string
-              image_url: string
-              is_best_seller: boolean
-              is_active: boolean
-              category: number
-              label: string
-              sub_category: string
-              sub_category_id: number
-              prices: Json
-            }[]
-          }
-        | {
-            Args: {
-              name_filter: string
-              price_filter: string
-              bestseller: boolean
-              active: boolean
-              order: string
-              category_filter: string
-              sub_category_filter: string
-              id_filter: string
-            }
-            Returns: {
-              id: number
-              name: string
-              image_url: string
-              is_best_seller: boolean
-              is_active: boolean
-              category: number
-              label: string
-              sub_category: string
-              sub_category_id: number
-              prices: Json
-            }[]
-          }
-        | {
-            Args: {
-              name_filter: string
-              price_filter: string
-              bestseller: boolean
-              active: boolean
-              order: string
-              sub_category_filter: string
-            }
-            Returns: {
-              id: number
-              name: string
-              image_url: string
-              price: number
-              is_best_seller: boolean
-              is_active: boolean
-              category: number
-              label: string
-              sub_category: string
-              sub_category_id: number
-            }[]
-          }
+      filter_products: {
+        Args: {
+          name_filter: string
+          price_filter: string
+          bestseller: boolean
+          active: boolean
+          order: string
+          category_filter: string
+          sub_category_filter: string
+        }
+        Returns: {
+          id: number
+          name: string
+          image_url: string
+          is_best_seller: boolean
+          is_active: boolean
+          category: number
+          label: string
+          sub_category: string
+          sub_category_id: number
+          prices: Json
+        }[]
+      }
       get_name_opts: {
         Args: {
           category_filter: string
@@ -393,5 +320,20 @@ export type Enums<
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 

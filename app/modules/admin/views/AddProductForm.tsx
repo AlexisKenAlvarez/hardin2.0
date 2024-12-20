@@ -84,7 +84,6 @@ const AddProductForm = () => {
       .max(70, { message: "Product name must not exceed 70 characters" }),
     category: categorySchema,
     sub_category: categorySchema.nullish(),
-    featured: z.boolean().optional(),
     bestSeller: z.boolean().optional(),
   });
 
@@ -96,7 +95,6 @@ const AddProductForm = () => {
         label: "--",
         id: -1,
       },
-      featured: false,
       bestSeller: false,
     },
   });
@@ -106,7 +104,7 @@ const AddProductForm = () => {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(prices)
+    console.log(prices);
     if (!uploadedImage) {
       setIsImageMissing(true);
       return;
@@ -135,11 +133,13 @@ const AddProductForm = () => {
       formData.append("action", "add_product");
       formData.append("file_name", imgName);
       formData.append("file", croppedImage as string);
-      formData.append("price", JSON.stringify(prices.filter(x => x.price !== null)));
+      formData.append(
+        "price",
+        JSON.stringify(prices.filter((x) => x.price !== null))
+      );
       formData.append("product_values", JSON.stringify(values));
 
       submit(formData, { method: "post" });
-      
     } catch (error) {
       console.log(error);
     }
@@ -500,32 +500,6 @@ const AddProductForm = () => {
               <img src={croppedImage} alt="Uploaded product" className="mt-3" />
             )}
           </div>
-
-          <FormField
-            control={form.control}
-            name="featured"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="  flex items-center gap-2">
-                    <Checkbox
-                      id="featured"
-                      defaultChecked={field.value}
-                      onCheckedChange={(v) => field.onChange(v)}
-                      checked={field.value}
-                    />
-                    <label
-                      htmlFor="featured"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mt-1"
-                    >
-                      Feature this product in homepage section
-                    </label>
-                  </div>
-                </FormControl>
-                <FormMessage className=" " />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}

@@ -13,7 +13,7 @@ import Menu from "~/modules/admin/views/Menu";
 import useTabFocus from "~/utils/useTabFocus";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabaseClient } = createSupabaseServerClient(request);
   const url = new URL(request.url);
 
   const { searchParams } = url;

@@ -12,7 +12,7 @@ export const UploadProductImage = async ({
   file_name: string;
   base64: string;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabaseClient } = createSupabaseServerClient(request);
   const { error: storageError } = await supabaseClient.storage
     .from("hardin")
     .upload(`products/${file_name}`, decode(base64), {
@@ -36,15 +36,9 @@ export const CreateProduct = async ({
   productInfo: ProductInfo;
   price: Price[];
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
-  const {
-    product_name,
-    category,
-    featured,
-    best_seller,
-    file_name,
-    sub_category,
-  } = productInfo;
+  const { supabaseClient } = createSupabaseServerClient(request);
+  const { product_name, category, best_seller, file_name, sub_category } =
+    productInfo;
 
   const { data: productData, error: insertError } = await supabaseClient
     .from("products")
@@ -78,18 +72,6 @@ export const CreateProduct = async ({
     throw new Error("Failed to create product");
   }
 
-  if (featured === "true") {
-    const { error: featuredError } = await supabaseClient
-      .from("featured")
-      .insert({
-        product: productData.id,
-      });
-
-    if (featuredError) {
-      throw new Error("Failed to create featured product");
-    }
-  }
-
   return;
 };
 
@@ -100,7 +82,7 @@ export const UpdateProduct = async ({
   request: Request;
   productInfo: ProductUpdate;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabaseClient } = createSupabaseServerClient(request);
 
   const { id, name, category, isBestSeller, updated_by, isActive } =
     productInfo;
@@ -174,7 +156,7 @@ export const GetAdminFilterOptions = async ({
   request: Request;
   category: string;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabaseClient } = createSupabaseServerClient(request);
 
   const { data: nameOpts, error: nameOptsError } = await supabaseClient
     .rpc("get_name_opts", { category_filter: category })

@@ -5,7 +5,6 @@ export interface CategoryFilterOptions {
   price: IDropdownOptions;
   isActive: IDropdownOptions;
   isBestSeller: IDropdownOptions;
-  isFeatured: IDropdownOptions;
   date: IDropdownOptions;
 }
 
@@ -14,7 +13,6 @@ export interface CategoryFilterValues {
   price: string;
   isActive: string;
   isBestSeller: string;
-  isFeatured: string;
   order: string;
 }
 
@@ -56,7 +54,6 @@ export interface ProductValue {
   product_name: string;
   category: CategoryType;
   sub_category?: CategoryType;
-  featured: string;
   bestSeller: string;
 }
 
@@ -68,8 +65,8 @@ export interface CategoryType {
 export interface ProductData {
   id: number
   name: string
-
   image_url: string
+  image: string,
   is_best_seller: boolean
   is_active: boolean
   category: number

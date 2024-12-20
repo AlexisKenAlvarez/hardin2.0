@@ -70,17 +70,16 @@ const AdminNav = () => {
         <div className="space-y-3">
           <div className="flex gap-2">
             <Avatar>
-              <AvatarImage src={session.user.user_metadata.picture} />
+              <AvatarImage src={session?.user?.user_metadata?.picture} />
               <AvatarFallback>CN</AvatarFallback>
             </Avatar>
             <div className="font-primary overflow-hidden whitespace-nowrap relative">
               <div className="absolute top-0 right-0 h-full bg-gradient-to-r from-transparent to-white w-10"></div>
               <h1 className="font-semibold truncate overflow-hidden">
-                {session.user.user_metadata.full_name ||
-                  session.user.user_metadata.user_name}
+                {session?.user?.user_metadata?.user_name}
               </h1>
               <p className="text-sm text-secondary-text  truncate overflow-hidden">
-                {session.user.user_metadata.email}
+                {session?.user?.user_metadata?.email}
               </p>
             </div>
           </div>

@@ -276,7 +276,7 @@ const Menu = () => {
 
   useEffect(() => {
     setSortedData(productsData);
-  }, [productsData])
+  }, [productsData]);
 
   return (
     <div className="space-y-5">
