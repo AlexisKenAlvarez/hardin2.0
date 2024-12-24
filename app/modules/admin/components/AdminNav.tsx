@@ -12,7 +12,6 @@ import { cn } from "~/lib/utils";
 
 const AdminNav = () => {
   const { session } = useOutletContext<OutletContext>();
-  console.log("🚀 ~ AdminNav ~ session:", session);
   const matches = useMatches();
   const path = matches[matches.length - 1].pathname.split("/");
   const currentPath = path[path.length - 1];

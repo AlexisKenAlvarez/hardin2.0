@@ -42,20 +42,19 @@ import {
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 
+import { action, loader } from "~/routes/_authenticated.admin.edit.$id";
 import getCroppedImg from "~/utils/getCroppedImage";
 import { CroppedPixels, Price } from "../types";
-import { loader, action } from "~/routes/_authenticated.admin.edit.$id";
+import { EditFormSchema } from "../schema";
 
 const EditProductForm = () => {
   const data = useActionData<typeof action>();
   const { categoryData, product, subCategories } =
-    useLoaderData<typeof loader>();
-  console.log("🚀 ~ EditProductForm ~ product:", product);
+  useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const navigate = useNavigate();
 
   const [isImageMissing, setIsImageMissing] = useState(false);
-  const [key, setKey] = useState(+new Date());
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [uploadedImage, setUploadedImage] = useState<string | null>(
@@ -73,27 +72,15 @@ const EditProductForm = () => {
   });
   const [cropping, setCropping] = useState(false);
   const [prices, setPrices] = useState<Price[]>([...product.prices]);
+  const [toDeletePriceIds, setToDeletePrice] = useState<number[] | null>(null);
 
   const imageUploadRef = useRef<HTMLInputElement>(null);
   const submit = useSubmit();
 
-  const categorySchema = z.object({
-    label: z.string(),
-    id: z.number(),
-  });
 
-  const formSchema = z.object({
-    product_name: z
-      .string()
-      .min(2, { message: "Product name must have at least 2 characters" })
-      .max(70, { message: "Product name must not exceed 70 characters" }),
-    category: categorySchema,
-    sub_category: categorySchema.nullish(),
-    bestSeller: z.boolean().optional(),
-  });
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof EditFormSchema>>({
+    resolver: zodResolver(EditFormSchema),
     defaultValues: {
       product_name: product.name,
       category: {
@@ -112,7 +99,7 @@ const EditProductForm = () => {
     setCroppedAreaPixels(croppedAreaPixels);
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof EditFormSchema>) {
     console.log(prices);
     if (!uploadedImage) {
       setIsImageMissing(true);
@@ -139,14 +126,18 @@ const EditProductForm = () => {
         return;
       }
       const formData = new FormData();
-      formData.append("action", "add_product");
-      formData.append("file_name", imgName);
-      formData.append("file", croppedImage as string);
-      formData.append(
-        "price",
-        JSON.stringify(prices.filter((x) => x.price !== null))
-      );
-      formData.append("product_values", JSON.stringify(values));
+
+      const EditProductValues = {
+        id: product.id,
+        new_image: imgName,
+        old_image: imgName,
+        file: croppedImage,
+        price: prices.filter((x) => x.price !== null),
+        toDeletePriceIds: toDeletePriceIds,
+        formValues: values
+      }
+      formData.append("action", "edit_product");
+      formData.append("EditProductValues", JSON.stringify(EditProductValues));
 
       submit(formData, { method: "post" });
     } catch (error) {
@@ -158,12 +149,10 @@ const EditProductForm = () => {
 
   useEffect(() => {
     if (data?.success) {
-      form.reset();
-      clearInputImageData();
-      setKey(+new Date());
-      setUploadedImage(null);
-      setCroppedImage(null);
-      setPrices([{ description: "", price: null }]);
+      toast.success(data.message);
+      navigate("/admin/menu");
+    } else if (data?.success === false) {
+      toast.error(data?.message);
     }
   }, [data, form]);
 
@@ -231,7 +220,7 @@ const EditProductForm = () => {
           <p className="text-xs">Go back</p>
         </Button>
 
-        <h1 className="text-2xl font-bold  ">Add New Product</h1>
+        <h1 className="text-2xl font-bold  ">Edit Product</h1>
       </div>
 
       <Form {...form}>
@@ -315,6 +304,13 @@ const EditProductForm = () => {
 
                           return newPrice;
                         });
+
+                        if (price.id) {
+                          setToDeletePrice((current) => [
+                            ...(current ?? []),
+                            price.id as number
+                          ]);
+                        }
                       }}
                       disabled={i === 0}
                       className={cn("text-red-500", {
@@ -371,7 +367,6 @@ const EditProductForm = () => {
                         form.setValue("sub_category", null);
                       }
                     }}
-                    key={key}
                   >
                     <SelectTrigger className="border-primary/20 rounded-xl">
                       {field.value ? (
@@ -416,7 +411,6 @@ const EditProductForm = () => {
                         );
                         field.onChange(value);
                       }}
-                      key={key}
                     >
                       <SelectTrigger className="border-primary/20 rounded-xl">
                         {field.value ? (

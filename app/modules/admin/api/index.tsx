@@ -45,7 +45,7 @@ export const CreateProduct = async ({
     .insert({
       category: parseInt(category),
       image_url: file_name,
-      is_best_seller: best_seller === "true",
+      is_best_seller: best_seller,
       name: product_name,
       sub_category: sub_category ? parseInt(sub_category) : null,
     })

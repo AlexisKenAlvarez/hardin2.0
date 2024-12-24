@@ -1,4 +1,6 @@
 import { IDropdownOptions } from "~/lib/types";
+import { EditFormSchema } from "../schema";
+import { z } from "zod";
 
 export interface CategoryFilterOptions {
   name: IDropdownOptions;
@@ -46,15 +48,15 @@ export interface FilterOptions {
 }
 
 export interface Price {
+  id?: number | null,
   description: string,
   price: number | null
 }
-
 export interface ProductValue {
   product_name: string;
   category: CategoryType;
   sub_category?: CategoryType;
-  bestSeller: string;
+  bestSeller: boolean;
 }
 
 export interface CategoryType {
@@ -85,3 +87,12 @@ export interface SearchParameters {
   sub_category: string | null;
 }
 
+export interface EditProductValues {
+  id: number,
+  new_image: string,
+  old_image: string,
+  file: string,
+  price: Price[]
+  toDeletePrice: number[]
+  values: z.infer<typeof EditFormSchema>
+}
