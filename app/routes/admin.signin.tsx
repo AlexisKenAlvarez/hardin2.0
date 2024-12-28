@@ -25,14 +25,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 }
 
-// export async function action({ request }: ActionFunctionArgs) {
-//   const formData = await request.formData();
-//   const actionType = formData.get("action");
-//   console.log("🚀 ~ action ~ actionType:", actionType)
-
-//   return {};
-// }
-
 const Signin = () => {
   const { env, error, existing } = useLoaderData<typeof loader>();
   const supabase = createBrowserClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);

@@ -4,25 +4,21 @@ import {
   redirect,
 } from "@remix-run/node";
 import { createAdminSupabaseClient } from "~/adminsupabase.server";
-import {
-  EditProductValues,
-  ProductData
-} from "~/modules/admin/types";
+import { DeleteProductImage, UploadProductImage } from "~/modules/admin/api";
+import { EditProductValues, ProductData } from "~/modules/admin/types";
 
 import EditProductForm from "~/modules/admin/views/EditProductForm";
-import { createSupabaseServerClient } from "~/supabase.server";
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request);
+export async function loader({ params }: LoaderFunctionArgs) {
+  const { supabase } = createAdminSupabaseClient();
   const { id } = params;
-  console.log("🚀 ~ loader ~ id:", id);
 
-  const { data: categoryData } = await supabaseClient
+  const { data: categoryData } = await supabase
     .from("products_category")
     .select("id, label")
     .eq("is_active", true);
 
-  const { data: subCategories } = await supabaseClient
+  const { data: subCategories } = await supabase
     .from("sub_category")
     .select("id, label, category")
     .eq("is_active", true);
@@ -31,7 +27,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return redirect("/admin/dashboard");
   }
 
-  const { data: productData } = await supabaseClient
+  const { data: productData } = await supabase
     .rpc("filter_products", {
       active: true,
       bestseller: null as unknown as boolean,
@@ -46,7 +42,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     .single();
 
   if (productData === null) {
-    console.log("🚀 ~ loader ~ productData:", productData);
     return redirect("/admin/dashboard");
   }
 
@@ -80,15 +75,15 @@ export async function action({ request }: ActionFunctionArgs) {
     const { error } = await supabase
       .from("products")
       .update({
-        category: editData.values.category.id,
-        name: editData.values.product_name,
-        sub_category: editData.values.sub_category?.id,
-        is_best_seller: editData.values.bestSeller,
+        category: editData.formValues.category.id,
+        name: editData.formValues.product_name,
+        sub_category: editData.formValues.sub_category?.id,
+        is_best_seller: editData.formValues.bestSeller,
       })
       .eq("id", editData.id!);
 
     editData.price.forEach(async (p) => {
-      if (p.id === null) {
+      if (!p.id) {
         const { error: price_error } = await supabase
           .from("products_prices")
           .insert({
@@ -106,7 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     });
 
-    editData.toDeletePrice.forEach(async (id) => {
+    editData.toDeletePriceIds?.forEach(async (id) => {
       const { error: price_error } = await supabase
         .from("products_prices")
         .delete()
@@ -120,6 +115,20 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     });
 
+    if (editData.image_changed) {
+      await DeleteProductImage({
+        file_name: editData.old_img_name,
+      });
+
+      await UploadProductImage({
+        new_product: false,
+        id: editData.id,
+        request,
+        file_name: editData.img_name,
+        cropped_file: editData.file,
+      });
+    }
+
     if (error) {
       return {
         success: false,
@@ -129,7 +138,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return {
       success: true,
-      message: `Product ${editData.values.product_name} updated successfully`,
+      message: `Product ${editData.formValues.product_name} updated successfully`,
     };
   }
 

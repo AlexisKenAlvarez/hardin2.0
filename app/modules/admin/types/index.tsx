@@ -89,10 +89,11 @@ export interface SearchParameters {
 
 export interface EditProductValues {
   id: number,
-  new_image: string,
-  old_image: string,
+  image_changed: boolean,
+  img_name: string,
+  old_img_name: string,
   file: string,
   price: Price[]
-  toDeletePrice: number[]
-  values: z.infer<typeof EditFormSchema>
+  toDeletePriceIds: number[]
+  formValues: z.infer<typeof EditFormSchema>
 }

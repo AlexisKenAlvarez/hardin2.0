@@ -40,17 +40,17 @@ import {
 } from "~/components/ui/dialog";
 
 import { toast } from "sonner";
-import { cn } from "~/lib/utils";
+import { cn, hasDuplicate } from "~/lib/utils";
 
 import { action, loader } from "~/routes/_authenticated.admin.edit.$id";
 import getCroppedImg from "~/utils/getCroppedImage";
-import { CroppedPixels, Price } from "../types";
 import { EditFormSchema } from "../schema";
+import { CroppedPixels, Price } from "../types";
 
 const EditProductForm = () => {
   const data = useActionData<typeof action>();
   const { categoryData, product, subCategories } =
-  useLoaderData<typeof loader>();
+    useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const navigate = useNavigate();
 
@@ -60,6 +60,7 @@ const EditProductForm = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(
     product.image
   );
+  const [imageChanged, setImageChanged] = useState(false);
   const [imgName, setImgName] = useState(product.image_url.split("_")[1]);
   const [croppedImage, setCroppedImage] = useState<string | null>(
     product.image
@@ -76,8 +77,6 @@ const EditProductForm = () => {
 
   const imageUploadRef = useRef<HTMLInputElement>(null);
   const submit = useSubmit();
-
-
 
   const form = useForm<z.infer<typeof EditFormSchema>>({
     resolver: zodResolver(EditFormSchema),
@@ -100,13 +99,17 @@ const EditProductForm = () => {
   };
 
   function onSubmit(values: z.infer<typeof EditFormSchema>) {
-    console.log(prices);
     if (!uploadedImage) {
       setIsImageMissing(true);
       return;
     }
 
     if (prices[0].price === null || prices[0].price === 0) {
+      return;
+    }
+
+    if (hasDuplicate(prices)) {
+      toast.error("Duplicate prices are not allowed");
       return;
     }
 
@@ -129,13 +132,14 @@ const EditProductForm = () => {
 
       const EditProductValues = {
         id: product.id,
-        new_image: imgName,
-        old_image: imgName,
+        img_name: imgName,
+        old_img_name: product.image_url,
         file: croppedImage,
         price: prices.filter((x) => x.price !== null),
         toDeletePriceIds: toDeletePriceIds,
-        formValues: values
-      }
+        formValues: values,
+        image_changed: imageChanged,
+      };
       formData.append("action", "edit_product");
       formData.append("EditProductValues", JSON.stringify(EditProductValues));
 
@@ -199,6 +203,7 @@ const EditProductForm = () => {
                 croppedAreaPixels
               );
 
+              setImageChanged(true);
               setCroppedImage(croppedImage as string);
               setCropping(false);
             }}
@@ -267,7 +272,6 @@ const EditProductForm = () => {
                         className="border-primary/20 pl-8 placeholder-primary/60 outline-0   rounded-xl py-5"
                         value={price.price ?? ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          console.log(e.target.value);
                           setPrices((current) => {
                             const newPrice = [...current];
                             newPrice[i].price = parseInt(e.target.value);
@@ -308,7 +312,7 @@ const EditProductForm = () => {
                         if (price.id) {
                           setToDeletePrice((current) => [
                             ...(current ?? []),
-                            price.id as number
+                            price.id as number,
                           ]);
                         }
                       }}
@@ -454,19 +458,14 @@ const EditProductForm = () => {
                       const dateNow = new Date().toJSON();
                       setImgName(`${dateNow}_${image_file.name}`);
 
-                      console.log("1");
-
                       const reader = new FileReader();
                       reader.readAsDataURL(image_file);
-                      console.log("2");
 
                       reader.onload = (e) => {
                         const image_url = e.target?.result;
                         setUploadedImage(image_url as string);
                         setCropping(true);
                       };
-
-                      console.log("3");
                     }
                   } catch (error) {
                     console.log(error);
@@ -533,7 +532,7 @@ const EditProductForm = () => {
           <Button
             type="submit"
             className="w-full rounded-xl"
-            disabled={navigation.state !== "idle"}
+            disabled={navigation.formAction?.includes("/admin/edit")}
           >
             Submit
           </Button>

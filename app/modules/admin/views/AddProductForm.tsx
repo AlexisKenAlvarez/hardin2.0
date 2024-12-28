@@ -40,7 +40,7 @@ import {
 } from "~/components/ui/dialog";
 
 import { toast } from "sonner";
-import { cn } from "~/lib/utils";
+import { cn, hasDuplicate } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.add";
 import getCroppedImg from "~/utils/getCroppedImage";
 import { CroppedPixels, Price } from "../types";
@@ -104,13 +104,17 @@ const AddProductForm = () => {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(prices);
     if (!uploadedImage) {
       setIsImageMissing(true);
       return;
     }
 
     if (prices[0].price === null || prices[0].price === 0) {
+      return;
+    }
+
+    if (hasDuplicate(prices)) {
+      toast.error("Duplicate prices are not allowed");
       return;
     }
 
@@ -269,7 +273,6 @@ const AddProductForm = () => {
                         className="border-primary/20 pl-8 placeholder-primary/60 outline-0   rounded-xl py-5"
                         value={price.price ?? ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          console.log(e.target.value);
                           setPrices((current) => {
                             const newPrice = [...current];
                             newPrice[i].price = parseInt(e.target.value);
@@ -451,19 +454,14 @@ const AddProductForm = () => {
                       const dateNow = new Date().toJSON();
                       setImgName(`${dateNow}_${image_file.name}`);
 
-                      console.log("1");
-
                       const reader = new FileReader();
                       reader.readAsDataURL(image_file);
-                      console.log("2");
 
                       reader.onload = (e) => {
                         const image_url = e.target?.result;
                         setUploadedImage(image_url as string);
                         setCropping(true);
                       };
-
-                      console.log("3");
                     }
                   } catch (error) {
                     console.log(error);
