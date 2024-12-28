@@ -5,10 +5,10 @@ export const loader = async ({ request }: ActionFunctionArgs) => {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   if (code) {
-    const { supabaseClient, headers } = createSupabaseServerClient(request);
-    const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
+    const { supabase, headers } = createSupabaseServerClient(request);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    const session = await supabaseClient.auth.getSession();
+    const session = await supabase.auth.getSession();
     const providerId = session.data.session?.user.user_metadata.provider_id;
 
     const identities = session?.data?.session?.user.identities;
@@ -23,9 +23,9 @@ export const loader = async ({ request }: ActionFunctionArgs) => {
           (identity) => identity.id !== providerId
         )?.provider;
 
-        await supabaseClient.auth.unlinkIdentity(toUnlink!);
+        await supabase.auth.unlinkIdentity(toUnlink!);
 
-        await supabaseClient.auth.signOut();
+        await supabase.auth.signOut();
         return redirect(
           `/admin/signin?error=oauth%20conflict&existing=${existingOauth}`
         );

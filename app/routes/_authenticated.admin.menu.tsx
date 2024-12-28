@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { redirect, useRevalidator } from "@remix-run/react";
-import { createSupabaseServerClient } from "~/supabase.server";
 
+import { createAdminSupabaseClient } from "~/adminsupabase.server";
 import { PageOptions } from "~/lib/types";
 import { GetAdminFilterOptions, UpdateProduct } from "~/modules/admin/api";
 import {
@@ -13,14 +13,14 @@ import Menu from "~/modules/admin/views/Menu";
 import useTabFocus from "~/utils/useTabFocus";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabase } = createAdminSupabaseClient();
   const url = new URL(request.url);
 
   const { searchParams } = url;
 
   const categoryId = url.searchParams.get("category");
 
-  const { data: user } = await supabaseClient.auth.getSession();
+  const { data: user } = await supabase.auth.getSession();
 
   const pageSize = searchParams.get("pageSize") || "10";
   const page = searchParams.get("page") || "1";
@@ -46,12 +46,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return redirect(url.toString());
   }
 
-  const { data: categoryData } = await supabaseClient
+  const { data: categoryData } = await supabase
     .from("products_category")
     .select("id, label")
     .eq("is_active", true);
 
-  const { data: productsData, count } = await supabaseClient
+  const { data: productsData, count } = await supabase
     .rpc(
       "filter_products",
       {
@@ -115,7 +115,6 @@ export async function action({ request }: ActionFunctionArgs) {
       ) as unknown as ProductUpdate;
 
       await UpdateProduct({
-        request,
         productInfo: values,
       });
 
@@ -123,6 +122,18 @@ export async function action({ request }: ActionFunctionArgs) {
         success: true,
         action: formData.get("_action"),
         message: "Product updated successfully",
+      };
+    } else if (formData.get("_action") === "deleteProduct") {
+      const id = formData.get("id") ?? 0;
+
+      const { supabase } = createAdminSupabaseClient();
+      await supabase.from("products_prices").delete().eq("product", id);
+      await supabase.from("products").delete().eq("id", id);
+
+      return {
+        success: true,
+        action: formData.get("_action"),
+        message: "Product deleted successfully",
       };
     }
 

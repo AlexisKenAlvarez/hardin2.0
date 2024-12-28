@@ -40,7 +40,7 @@ import {
 } from "~/components/ui/dialog";
 
 import { toast } from "sonner";
-import { cn } from "~/lib/utils";
+import { cn, hasDuplicate } from "~/lib/utils";
 import { action, loader } from "~/routes/_authenticated.admin.add";
 import getCroppedImg from "~/utils/getCroppedImage";
 import { CroppedPixels, Price } from "../types";
@@ -84,7 +84,6 @@ const AddProductForm = () => {
       .max(70, { message: "Product name must not exceed 70 characters" }),
     category: categorySchema,
     sub_category: categorySchema.nullish(),
-    featured: z.boolean().optional(),
     bestSeller: z.boolean().optional(),
   });
 
@@ -96,7 +95,6 @@ const AddProductForm = () => {
         label: "--",
         id: -1,
       },
-      featured: false,
       bestSeller: false,
     },
   });
@@ -106,13 +104,17 @@ const AddProductForm = () => {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(prices)
     if (!uploadedImage) {
       setIsImageMissing(true);
       return;
     }
 
     if (prices[0].price === null || prices[0].price === 0) {
+      return;
+    }
+
+    if (hasDuplicate(prices)) {
+      toast.error("Duplicate prices are not allowed");
       return;
     }
 
@@ -135,11 +137,13 @@ const AddProductForm = () => {
       formData.append("action", "add_product");
       formData.append("file_name", imgName);
       formData.append("file", croppedImage as string);
-      formData.append("price", JSON.stringify(prices.filter(x => x.price !== null)));
+      formData.append(
+        "price",
+        JSON.stringify(prices.filter((x) => x.price !== null))
+      );
       formData.append("product_values", JSON.stringify(values));
 
       submit(formData, { method: "post" });
-      
     } catch (error) {
       console.log(error);
     }
@@ -269,7 +273,6 @@ const AddProductForm = () => {
                         className="border-primary/20 pl-8 placeholder-primary/60 outline-0   rounded-xl py-5"
                         value={price.price ?? ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          console.log(e.target.value);
                           setPrices((current) => {
                             const newPrice = [...current];
                             newPrice[i].price = parseInt(e.target.value);
@@ -451,19 +454,14 @@ const AddProductForm = () => {
                       const dateNow = new Date().toJSON();
                       setImgName(`${dateNow}_${image_file.name}`);
 
-                      console.log("1");
-
                       const reader = new FileReader();
                       reader.readAsDataURL(image_file);
-                      console.log("2");
 
                       reader.onload = (e) => {
                         const image_url = e.target?.result;
                         setUploadedImage(image_url as string);
                         setCropping(true);
                       };
-
-                      console.log("3");
                     }
                   } catch (error) {
                     console.log(error);
@@ -500,32 +498,6 @@ const AddProductForm = () => {
               <img src={croppedImage} alt="Uploaded product" className="mt-3" />
             )}
           </div>
-
-          <FormField
-            control={form.control}
-            name="featured"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="  flex items-center gap-2">
-                    <Checkbox
-                      id="featured"
-                      defaultChecked={field.value}
-                      onCheckedChange={(v) => field.onChange(v)}
-                      checked={field.value}
-                    />
-                    <label
-                      htmlFor="featured"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mt-1"
-                    >
-                      Feature this product in homepage section
-                    </label>
-                  </div>
-                </FormControl>
-                <FormMessage className=" " />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}

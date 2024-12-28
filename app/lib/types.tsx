@@ -4,8 +4,7 @@ export interface ProductInfo {
   product_name: string;
   category: string;
   sub_category?: string;
-  featured: string;
-  best_seller: string;
+  best_seller: boolean;
   file_name: string;
 }
 

@@ -1,23 +1,39 @@
 import { decode } from "base64-arraybuffer";
+import { createAdminSupabaseClient } from "~/adminsupabase.server";
 import { ProductInfo } from "~/lib/types";
-import { createSupabaseServerClient } from "~/supabase.server";
 import { Price, ProductUpdate } from "../types";
 
 export const UploadProductImage = async ({
-  request,
+  id,
   file_name,
-  base64,
+  cropped_file,
+  new_product,
 }: {
+  id: number;
   request: Request;
   file_name: string;
-  base64: string;
+  cropped_file: string;
+  new_product: boolean;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
-  const { error: storageError } = await supabaseClient.storage
+  const { supabase } = createAdminSupabaseClient();
+  const base64 = cropped_file.split("base64,")[1];
+  const { error: storageError } = await supabase.storage
     .from("hardin")
     .upload(`products/${file_name}`, decode(base64), {
       contentType: "image/jpeg",
     });
+
+  if (!new_product) {
+    const { error: change_name_error } = await supabase
+      .from("products")
+      .update({ image_url: file_name })
+      .eq("id", id);
+
+    if (change_name_error) {
+      console.log("Change Name Error", change_name_error);
+      throw new Error("Failed to update product image name");
+    }
+  }
 
   if (storageError) {
     console.log("Storage Error", storageError);
@@ -27,8 +43,26 @@ export const UploadProductImage = async ({
   return;
 };
 
+export const DeleteProductImage = async ({
+  file_name,
+}: {
+  file_name: string;
+}) => {
+  const { supabase } = createAdminSupabaseClient();
+
+  const { error: image_error } = await supabase.storage
+    .from("hardin")
+    .remove([`products/${file_name}`]);
+
+  if (image_error) {
+    return {
+      success: false,
+      message: "Failed to update product",
+    };
+  }
+};
+
 export const CreateProduct = async ({
-  request,
   productInfo,
   price,
 }: {
@@ -36,22 +70,16 @@ export const CreateProduct = async ({
   productInfo: ProductInfo;
   price: Price[];
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
-  const {
-    product_name,
-    category,
-    featured,
-    best_seller,
-    file_name,
-    sub_category,
-  } = productInfo;
+  const { supabase } = createAdminSupabaseClient();
+  const { product_name, category, best_seller, file_name, sub_category } =
+    productInfo;
 
-  const { data: productData, error: insertError } = await supabaseClient
+  const { data: productData, error: insertError } = await supabase
     .from("products")
     .insert({
       category: parseInt(category),
       image_url: file_name,
-      is_best_seller: best_seller === "true",
+      is_best_seller: best_seller,
       name: product_name,
       sub_category: sub_category ? parseInt(sub_category) : null,
     })
@@ -59,7 +87,7 @@ export const CreateProduct = async ({
     .single();
 
   if (productData) {
-    const { error: priceError } = await supabaseClient
+    const { error: priceError } = await supabase
       .from("products_prices")
       .insert([
         ...price.map((p) => ({
@@ -72,40 +100,28 @@ export const CreateProduct = async ({
     if (priceError) {
       throw new Error("Failed to insert price");
     }
+
+    return productData.id;
   }
 
   if (insertError) {
     throw new Error("Failed to create product");
   }
 
-  if (featured === "true") {
-    const { error: featuredError } = await supabaseClient
-      .from("featured")
-      .insert({
-        product: productData.id,
-      });
-
-    if (featuredError) {
-      throw new Error("Failed to create featured product");
-    }
-  }
-
   return;
 };
 
 export const UpdateProduct = async ({
-  request,
   productInfo,
 }: {
-  request: Request;
   productInfo: ProductUpdate;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabase } = createAdminSupabaseClient();
 
   const { id, name, category, isBestSeller, updated_by, isActive } =
     productInfo;
 
-  const { data: product, error: productError } = await supabaseClient
+  const { data: product, error: productError } = await supabase
     .from("products")
     .select()
     .eq("id", id)
@@ -116,7 +132,7 @@ export const UpdateProduct = async ({
   }
 
   if (product.name !== name) {
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from("products")
       .update({ name, updated_at: new Date().toISOString(), updated_by })
       .eq("id", id);
@@ -127,7 +143,7 @@ export const UpdateProduct = async ({
   }
 
   if (product.category !== parseInt(category)) {
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from("products")
       .update({
         category: parseInt(category),
@@ -142,7 +158,7 @@ export const UpdateProduct = async ({
   }
 
   if (product.is_best_seller !== (isBestSeller === "true")) {
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from("products")
       .update({
         is_best_seller: isBestSeller === "true",
@@ -156,7 +172,7 @@ export const UpdateProduct = async ({
   }
 
   if (product.is_active !== (isActive === "true")) {
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from("products")
       .update({ is_active: isActive === "true", updated_by })
       .eq("id", id);
@@ -168,15 +184,14 @@ export const UpdateProduct = async ({
 };
 
 export const GetAdminFilterOptions = async ({
-  request,
   category,
 }: {
   request: Request;
   category: string;
 }) => {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+  const { supabase } = createAdminSupabaseClient();
 
-  const { data: nameOpts, error: nameOptsError } = await supabaseClient
+  const { data: nameOpts, error: nameOptsError } = await supabase
     .rpc("get_name_opts", { category_filter: category })
     .select("*");
 
@@ -184,7 +199,7 @@ export const GetAdminFilterOptions = async ({
     throw new Error("Failed to fetch name options");
   }
 
-  const { data: priceOpts, error: priceOptsError } = await supabaseClient
+  const { data: priceOpts, error: priceOptsError } = await supabase
     .rpc("get_price_opts", { category_filter: category })
     .select("*");
 

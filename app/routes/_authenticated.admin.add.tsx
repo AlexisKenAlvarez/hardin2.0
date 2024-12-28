@@ -1,20 +1,20 @@
-import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs } from "@remix-run/node";
+import { createAdminSupabaseClient } from "~/adminsupabase.server";
 
 import { ProductInfo } from "~/lib/types";
 import { CreateProduct, UploadProductImage } from "~/modules/admin/api";
 import { ProductValue } from "~/modules/admin/types";
 import AddProductForm from "~/modules/admin/views/AddProductForm";
-import { createSupabaseServerClient } from "~/supabase.server";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request, true);
+export async function loader() {
+  const { supabase } = createAdminSupabaseClient();
 
-  const { data: categoryData } = await supabaseClient
+  const { data: categoryData } = await supabase
     .from("products_category")
     .select("id, label")
     .eq("is_active", true);
 
-  const { data: subCategories } = await supabaseClient
+  const { data: subCategories } = await supabase
     .from("sub_category")
     .select("id, label, category")
     .eq("is_active", true);
@@ -30,8 +30,9 @@ export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
     const action = formData.get("action");
 
-    const { category, featured, product_name, sub_category, bestSeller } =
-      JSON.parse(formData.get("product_values") as string) as ProductValue;
+    const { category, product_name, sub_category, bestSeller } = JSON.parse(
+      formData.get("product_values") as string
+    ) as ProductValue;
 
     const price = JSON.parse(formData.get("price") as string);
 
@@ -40,21 +41,27 @@ export async function action({ request }: ActionFunctionArgs) {
         product_name,
         category: category.id.toString(),
         sub_category: sub_category?.id.toString(),
-        featured,
         best_seller: bestSeller,
         file_name: formData.get("file_name") as string,
       };
 
       const file = formData.get("file") as string;
-      const base64 = file.split("base64,")[1];
 
-      await UploadProductImage({
+      const new_product_id = await CreateProduct({
         request,
-        file_name: productInfo.file_name,
-        base64,
+        productInfo,
+        price,
       });
 
-      await CreateProduct({ request, productInfo, price });
+      if (new_product_id) {
+        await UploadProductImage({
+          new_product: true,
+          id: new_product_id,
+          request,
+          file_name: productInfo.file_name,
+          cropped_file: file,
+        });
+      }
     }
     return {
       success: true,

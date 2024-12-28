@@ -4,29 +4,10 @@ import {
   serializeCookieHeader,
 } from "@supabase/ssr";
 import { Database } from "supabase/types";
-export const createSupabaseServerClient = (
-  request: Request,
-  admin?: boolean
-) => {
+export const createSupabaseServerClient = (request: Request) => {
   const headers = new Headers();
 
-  if (admin) {
-    const supabaseClient = createServerClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return [];
-          },
-        },
-      }
-    );
-
-    return { supabaseClient, headers };
-  }
-
-  const supabaseClient = createServerClient<Database>(
+  const supabase = createServerClient<Database>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -45,5 +26,5 @@ export const createSupabaseServerClient = (
       },
     }
   );
-  return { supabaseClient, headers };
+  return { supabase, headers };
 };

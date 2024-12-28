@@ -1,11 +1,12 @@
 import { IDropdownOptions } from "~/lib/types";
+import { EditFormSchema } from "../schema";
+import { z } from "zod";
 
 export interface CategoryFilterOptions {
   name: IDropdownOptions;
   price: IDropdownOptions;
   isActive: IDropdownOptions;
   isBestSeller: IDropdownOptions;
-  isFeatured: IDropdownOptions;
   date: IDropdownOptions;
 }
 
@@ -14,7 +15,6 @@ export interface CategoryFilterValues {
   price: string;
   isActive: string;
   isBestSeller: string;
-  isFeatured: string;
   order: string;
 }
 
@@ -48,16 +48,15 @@ export interface FilterOptions {
 }
 
 export interface Price {
+  id?: number | null,
   description: string,
   price: number | null
 }
-
 export interface ProductValue {
   product_name: string;
   category: CategoryType;
   sub_category?: CategoryType;
-  featured: string;
-  bestSeller: string;
+  bestSeller: boolean;
 }
 
 export interface CategoryType {
@@ -68,8 +67,8 @@ export interface CategoryType {
 export interface ProductData {
   id: number
   name: string
-
   image_url: string
+  image: string,
   is_best_seller: boolean
   is_active: boolean
   category: number
@@ -88,3 +87,13 @@ export interface SearchParameters {
   sub_category: string | null;
 }
 
+export interface EditProductValues {
+  id: number,
+  image_changed: boolean,
+  img_name: string,
+  old_img_name: string,
+  file: string,
+  price: Price[]
+  toDeletePriceIds: number[]
+  formValues: z.infer<typeof EditFormSchema>
+}

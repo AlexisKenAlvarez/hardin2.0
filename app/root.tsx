@@ -34,8 +34,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = createSupabaseServerClient(request);
-  const { data } = await supabaseClient.auth.getSession();
+  const { supabase } = createSupabaseServerClient(request);
+  const { data } = await supabase.auth.getSession();
   return {
     session: data.session,
     env: {

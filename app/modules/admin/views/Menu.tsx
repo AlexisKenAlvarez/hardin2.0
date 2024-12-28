@@ -4,7 +4,7 @@ import {
   useLoaderData,
   useNavigation,
   useSearchParams,
-  useSubmit,
+  useSubmit
 } from "@remix-run/react";
 import {
   ArrowUpDown,
@@ -233,14 +233,46 @@ const Menu = () => {
                 <span className="text-xs">Edit</span>
               </Button>
             </Link>
-            <Button
-              size="sm"
-              className="flex items-center gap-1"
-              variant={"destructive"}
-            >
-              <Trash size={8} className="-mt-[2px]" />
-              <span className="text-xs">Delete</span>
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  className="flex items-center gap-1"
+                  variant={"destructive"}
+                >
+                  <Trash size={8} className="-mt-[2px]" />
+                  <span className="text-xs">Delete</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    you this product from the database.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant={"secondary"}>Cancel</Button>
+                  </DialogClose>
+
+                  <DialogClose asChild>
+                    <Button
+                      onClick={() => {
+                        const formData = new FormData();
+                        formData.append("id", product?.id.toString() ?? "");
+                        formData.append("_action", "deleteProduct");
+                        submit(formData, { method: "post" });
+                      }}
+                    >
+                      Confirm
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         );
       },
@@ -261,6 +293,8 @@ const Menu = () => {
   useEffect(() => {
     if (actionData?.action === "updateProduct" && actionData.success) {
       toast.success("Product updated successfully");
+    } else if (actionData?.action === "deleteProduct" && actionData.success) {
+      toast.success(actionData?.message);
     }
   }, [actionData]);
 
@@ -276,7 +310,7 @@ const Menu = () => {
 
   useEffect(() => {
     setSortedData(productsData);
-  }, [productsData])
+  }, [productsData]);
 
   return (
     <div className="space-y-5">
@@ -569,7 +603,6 @@ const Menu = () => {
                   const formData = new FormData();
                   formData.append("id", toUpdate?.id.toString() ?? "");
                   formData.append("name", toUpdate?.name.toString() ?? "");
-                  // formData.append("price", toUpdate?.price.toString() ?? "");
                   formData.append(
                     "category",
                     toUpdate?.category.toString() ?? ""

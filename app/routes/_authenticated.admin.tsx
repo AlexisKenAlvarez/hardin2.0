@@ -19,9 +19,9 @@ export const meta: MetaFunction = () => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { supabaseClient } = await createSupabaseServerClient(request);
+  const { supabase } = await createSupabaseServerClient(request);
 
-  const { data: user } = await supabaseClient.auth.getSession();
+  const { data: user } = await supabase.auth.getSession();
 
   if (!user.session) {
     return redirect("/admin/signin");
